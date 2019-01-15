@@ -6,7 +6,7 @@
 *.sublime-workspace
 *.suo
 *.swp
-# .bundle/
+.bundle/
 .idea/
 .loadpath
 .project
