@@ -281,14 +281,32 @@ FactoryBot.define do
           :class   => "ManageIQ::Providers::Openstack::CloudManager",
           :parent  => :ems_cloud
 
+  factory :ems_orange,
+          :aliases => ["manageiq/providers/orange/cloud_manager"],
+          :class   => "ManageIQ::Providers::Orange::CloudManager",
+          :parent  => :ems_cloud
+
   factory :ems_openstack_with_authentication,
           :parent => :ems_openstack do
     authtype %w(default amqp)
   end
 
+  factory :ems_orange_with_authentication,
+          :parent => :ems_orange do
+    after :create do |x|
+      x.authentications << FactoryBot.create(:authentication)
+      x.authentications << FactoryBot.create(:authentication, :authtype => "amqp")
+    end
+  end
+
   factory :ems_openstack_network,
           :aliases => ["manageiq/providers/openstack/network_manager"],
           :class   => "ManageIQ::Providers::Openstack::NetworkManager",
+          :parent  => :ems_network
+
+  factory :ems_orange_network,
+          :aliases => ["manageiq/providers/orange/network_manager"],
+          :class   => "ManageIQ::Providers::Orange::NetworkManager",
           :parent  => :ems_network
 
   factory :ems_nuage_network,

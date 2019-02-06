@@ -8,6 +8,10 @@ FactoryBot.define do
     name "etc/nova/nova.conf"
   end
 
+  factory :filesystem_orange_conf, :parent => :filesystem do
+    name "etc/nova/nova.conf"
+  end
+
   factory :filesystem_binary_file, :parent => :filesystem do
     name "periodical/utilities/blue_screen.exe"
   end

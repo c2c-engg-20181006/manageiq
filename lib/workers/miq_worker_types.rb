@@ -45,6 +45,15 @@ MIQ_WORKER_TYPES = {
   "ManageIQ::Providers::Openstack::NetworkManager::EventCatcher"                => %i(manageiq_default),
   "ManageIQ::Providers::Openstack::NetworkManager::MetricsCollectorWorker"      => %i(manageiq_default),
   "ManageIQ::Providers::Openstack::StorageManager::CinderManager::EventCatcher" => %i(manageiq_default),
+  "ManageIQ::Providers::Orange::CloudManager::EventCatcher"                  => %i(manageiq_default),
+  "ManageIQ::Providers::Orange::CloudManager::MetricsCollectorWorker"        => %i(manageiq_default),
+  "ManageIQ::Providers::Orange::CloudManager::RefreshWorker"                 => %i(manageiq_default),
+  # "ManageIQ::Providers::Orange::InfraManager::EventCatcher"                  => %i(manageiq_default),
+  # "ManageIQ::Providers::Orange::InfraManager::MetricsCollectorWorker"        => %i(manageiq_default),
+  # "ManageIQ::Providers::Orange::InfraManager::RefreshWorker"                 => %i(manageiq_default),
+  "ManageIQ::Providers::Orange::NetworkManager::EventCatcher"                => %i(manageiq_default),
+  "ManageIQ::Providers::Orange::NetworkManager::MetricsCollectorWorker"      => %i(manageiq_default),
+  "ManageIQ::Providers::Orange::StorageManager::CinderManager::EventCatcher" => %i(manageiq_default),
   "ManageIQ::Providers::Redfish::PhysicalInfraManager::EventCatcher"            => %i(manageiq_default),
   "ManageIQ::Providers::Redfish::PhysicalInfraManager::RefreshWorker"           => %i(manageiq_default),
   "ManageIQ::Providers::Redhat::InfraManager::EventCatcher"                     => %i(manageiq_default),
@@ -86,6 +95,8 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Vmware::InfraManager::MetricsCollectorWorker
   ManageIQ::Providers::Openstack::CloudManager::MetricsCollectorWorker
   ManageIQ::Providers::Openstack::NetworkManager::MetricsCollectorWorker
+  ManageIQ::Providers::Orange::CloudManager::MetricsCollectorWorker
+  ManageIQ::Providers::Orange::NetworkManager::MetricsCollectorWorker
   ManageIQ::Providers::Redhat::NetworkManager::MetricsCollectorWorker
   ManageIQ::Providers::Openstack::InfraManager::MetricsCollectorWorker
   EmbeddedAnsibleWorker
@@ -116,6 +127,8 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Redhat::InfraManager::RefreshWorker
   ManageIQ::Providers::Openstack::CloudManager::RefreshWorker
   ManageIQ::Providers::Openstack::NetworkManager::RefreshWorker
+  ManageIQ::Providers::Orange::CloudManager::RefreshWorker
+  ManageIQ::Providers::Orange::NetworkManager::RefreshWorker
   ManageIQ::Providers::Redhat::NetworkManager::RefreshWorker
   ManageIQ::Providers::Openstack::InfraManager::RefreshWorker
   ManageIQ::Providers::StorageManager::CinderManager::RefreshWorker
@@ -136,6 +149,9 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Openstack::CloudManager::EventCatcher
   ManageIQ::Providers::Openstack::NetworkManager::EventCatcher
   ManageIQ::Providers::Openstack::StorageManager::CinderManager::EventCatcher
+  ManageIQ::Providers::Orange::CloudManager::EventCatcher
+  ManageIQ::Providers::Orange::NetworkManager::EventCatcher
+  ManageIQ::Providers::Orange::StorageManager::CinderManager::EventCatcher
   ManageIQ::Providers::Redfish::PhysicalInfraManager::EventCatcher
   ManageIQ::Providers::Redhat::NetworkManager::EventCatcher
   ManageIQ::Providers::Openstack::InfraManager::EventCatcher

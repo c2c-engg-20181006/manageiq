@@ -6,4 +6,5 @@ FactoryBot.define do
   end
 
   factory :cloud_tenant_openstack, :class => "ManageIQ::Providers::Openstack::CloudManager::CloudTenant", :parent => :cloud_tenant
+  factory :cloud_tenant_orange, :class => "ManageIQ::Providers::Orange::CloudManager::CloudTenant", :parent => :cloud_tenant
 end

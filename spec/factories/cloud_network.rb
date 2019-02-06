@@ -12,6 +12,14 @@ FactoryBot.define do
   factory :cloud_network_public_openstack,
           :class  => "ManageIQ::Providers::Openstack::NetworkManager::CloudNetwork::Public",
           :parent => :cloud_network_openstack
+  factory :cloud_network_orange, :class  => "ManageIQ::Providers::Orange::NetworkManager::CloudNetwork",
+          :parent => :cloud_network
+  factory :cloud_network_private_orange,
+          :class  => "ManageIQ::Providers::Orange::NetworkManager::CloudNetwork::Private",
+          :parent => :cloud_network_orange
+  factory :cloud_network_public_orange,
+          :class  => "ManageIQ::Providers::Orange::NetworkManager::CloudNetwork::Public",
+          :parent => :cloud_network_orange
   factory :cloud_network_amazon, :class  => "ManageIQ::Providers::Amazon::NetworkManager::CloudNetwork",
                                  :parent => :cloud_network
   factory :cloud_network_azure, :class  => "ManageIQ::Providers::Azure::NetworkManager::CloudNetwork",

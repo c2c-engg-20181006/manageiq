@@ -146,4 +146,5 @@ FactoryBot.define do
   factory :auth_key_pair_cloud,     :class => "ManageIQ::Providers::CloudManager::AuthKeyPair"
   factory :auth_key_pair_amazon,    :class => "ManageIQ::Providers::Amazon::CloudManager::AuthKeyPair"
   factory :auth_key_pair_openstack, :class => "ManageIQ::Providers::Openstack::CloudManager::AuthKeyPair"
+  factory :auth_key_pair_orange, :class => "ManageIQ::Providers::Orange::CloudManager::AuthKeyPair"
 end

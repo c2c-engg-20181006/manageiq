@@ -11,6 +11,8 @@ FactoryBot.define do
                                   :class  => "ManageIQ::Providers::Amazon::NetworkManager::SecurityGroup"
   factory :security_group_openstack, :parent => :security_group,
                                      :class  => "ManageIQ::Providers::Openstack::NetworkManager::SecurityGroup"
+  factory :security_group_orange, :parent => :security_group,
+                                      :class  => "ManageIQ::Providers::Orange::NetworkManager::SecurityGroup"
   factory :security_group_azure, :parent => :security_group,
                                  :class  => "ManageIQ::Providers::Azure::NetworkManager::SecurityGroup"
   factory :security_group_google, :parent => :security_group,
@@ -19,4 +21,8 @@ FactoryBot.define do
   factory :security_group_with_firewall_rules_openstack,
           :parent => :security_group_with_firewall_rules,
           :class  => "ManageIQ::Providers::Openstack::NetworkManager::SecurityGroup"
+
+  factory :security_group_with_firewall_rules_orange,
+          :parent => :security_group_with_firewall_rules,
+          :class  => "ManageIQ::Providers::Orange::NetworkManager::SecurityGroup"
 end

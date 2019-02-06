@@ -38,6 +38,14 @@ FactoryBot.define do
   factory :volume_template_openstack, :class => "ManageIQ::Providers::Openstack::CloudManager::VolumeTemplate", :parent => :template_cloud do
     vendor "openstack"
   end
+  
+  factory :template_orange, :class => "ManageIQ::Providers::Orange::CloudManager::Template", :parent => :template_cloud do
+    vendor "orange"
+  end
+
+  factory :volume_template_orange, :class => "ManageIQ::Providers::Orange::CloudManager::VolumeTemplate", :parent => :template_cloud do
+    vendor "orange"
+  end
 
   factory :miq_template do
     name "ubuntu-16.04-stable"
@@ -131,6 +139,23 @@ FactoryBot.define do
     trait :with_provider do
       after(:create) do |x|
         FactoryBot.create(:ems_openstack, :vms => [x])
+      end
+    end
+  end
+
+  factory :vm_orange, :class => "ManageIQ::Providers::Orange::CloudManager::Vm", :parent => :vm_cloud do
+    vendor          "orange"
+    raw_power_state "ACTIVE"
+    sequence(:ems_ref) { |n| "some-uuid-#{seq_padded_for_sorting(n)}" }
+    cloud_tenant { FactoryBot.create(:cloud_tenant_orange) }
+
+    factory :vm_perf_orange, :parent => :vm_orange do
+      ems_ref "orange-perf-vm"
+    end
+
+    trait :with_provider do
+      after(:create) do |x|
+        FactoryBot.create(:ems_orange, :vms => [x])
       end
     end
   end

@@ -40,7 +40,9 @@ class MiqTemplate < VmOrTemplate
 
   def self.without_volume_templates
     where.not(:type => ["ManageIQ::Providers::Openstack::CloudManager::VolumeTemplate",
-                        "ManageIQ::Providers::Openstack::CloudManager::VolumeSnapshotTemplate"])
+                        "ManageIQ::Providers::Openstack::CloudManager::VolumeSnapshotTemplate",
+                        "ManageIQ::Providers::Orange::CloudManager::VolumeTemplate",
+                        "ManageIQ::Providers::Orange::CloudManager::VolumeSnapshotTemplate"])
   end
 
   def active?; false; end
