@@ -1,8 +1,10 @@
 class MiqProductFeature < ApplicationRecord
-  SUPER_ADMIN_FEATURE = "everything".freeze
+  SUPER_ADMIN_FEATURE   = "everything".freeze
   REPORT_ADMIN_FEATURE  = "miq_report_superadmin".freeze
   REQUEST_ADMIN_FEATURE = "miq_request_approval".freeze
-  TENANT_ADMIN_FEATURE = "rbac_tenant".freeze
+  MY_TASKS_FEATURE      = "miq_task_my_ui".freeze
+  ALL_TASKS_FEATURE     = "miq_task_all_ui".freeze
+  TENANT_ADMIN_FEATURE  = "rbac_tenant".freeze
 
   acts_as_tree
 
@@ -31,7 +33,8 @@ class MiqProductFeature < ApplicationRecord
   REQUIRED_ATTRIBUTES = [:identifier].freeze
   OPTIONAL_ATTRIBUTES = %i(name feature_type description children hidden protected).freeze
   ALLOWED_ATTRIBUTES = (REQUIRED_ATTRIBUTES + OPTIONAL_ATTRIBUTES).freeze
-  TENANT_FEATURE_ROOT_IDENTIFIERS = %w(dialog_new_editor dialog_edit_editor dialog_copy_editor dialog_delete rbac_tenant_manage_quotas).freeze
+  MY_TENANT_FEATURE_ROOT_IDENTIFIERS = %w(rbac_tenant_manage_quotas).freeze
+  TENANT_FEATURE_ROOT_IDENTIFIERS = (%w(dialog_new_editor dialog_edit_editor dialog_copy_editor dialog_delete) + MY_TENANT_FEATURE_ROOT_IDENTIFIERS).freeze
 
   def name
     value = self[:name]
@@ -45,6 +48,10 @@ class MiqProductFeature < ApplicationRecord
 
   def self.tenant_identifier(identifier, tenant_id)
     "#{identifier}_tenant_#{tenant_id}"
+  end
+
+  def self.my_root_tenant_identifier?(identifier)
+    MY_TENANT_FEATURE_ROOT_IDENTIFIERS.include?(identifier)
   end
 
   def self.root_tenant_identifier?(identifier)
@@ -143,7 +150,7 @@ class MiqProductFeature < ApplicationRecord
 
   def self.seed_tenant_miq_product_features
     result = with_tenant_feature_root_features.map.each do |tenant_miq_product_feature|
-      Tenant.all.map { |tenant| tenant.build_miq_product_feature(tenant_miq_product_feature) }
+      Tenant.in_my_region.all.map { |tenant| tenant.build_miq_product_feature(tenant_miq_product_feature) }
     end.flatten
 
     MiqProductFeature.create(result).map(&:identifier)

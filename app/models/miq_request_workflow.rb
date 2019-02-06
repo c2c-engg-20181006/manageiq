@@ -848,7 +848,7 @@ class MiqRequestWorkflow
                  else
                    item.class.base_class
                  end
-    node = @ems_xml_nodes[klass_name][item.id]
+    node = @ems_xml_nodes.fetch(klass_name, {})[item.id]
     $log.error("#{log_header} Resource <#{klass_name}_#{item.id} - #{item.name}> not found in cached resource tree.") if node.nil?
     node
   end
@@ -1069,7 +1069,7 @@ class MiqRequestWorkflow
     MiqPreloader.preload(hosts, :storages => {}, :host_storages => :storage)
 
     storages = hosts.each_with_object({}) do |host, hash|
-      host.writable_storages.each { |s| hash[s.id] = s }
+      host.writable_accessible_storages.each { |s| hash[s.id] = s }
     end.values
     selected_storage_profile_id = get_value(@values[:placement_storage_profile])
     if selected_storage_profile_id

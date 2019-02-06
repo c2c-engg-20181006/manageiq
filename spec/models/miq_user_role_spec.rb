@@ -80,6 +80,7 @@ describe MiqUserRole do
 
       let!(:tenant_1) { FactoryBot.create(:tenant, :parent => root_tenant) }
       let!(:tenant_2) { FactoryBot.create(:tenant, :parent => root_tenant) }
+      let!(:tenant_3) { FactoryBot.create(:tenant, :parent => root_tenant) }
 
       let(:feature)             { MiqProductFeature.find_all_by_identifier(["dialog_edit_editor_tenant_#{tenant_2.id}", "rbac_tenant_manage_quotas_tenant_#{tenant_2.id}"]) }
       let(:non_dynamic_feature) { MiqProductFeature.find_all_by_identifier(["dialog_edit_editor", "rbac_tenant_manage_quotas"]) }
@@ -87,7 +88,7 @@ describe MiqUserRole do
       let(:role_no_dynamic) { FactoryBot.create(:miq_user_role, :miq_product_features => non_dynamic_feature) }
       let(:group_tenant_1) { FactoryBot.create(:miq_group, :miq_user_role => role, :tenant => tenant_1) }
       let(:group_tenant_2) { FactoryBot.create(:miq_group, :miq_user_role => role, :tenant => tenant_2) }
-      let(:group_3)        { FactoryBot.create(:miq_group, :miq_user_role => role_no_dynamic, :tenant => tenant_2) }
+      let(:group_3)        { FactoryBot.create(:miq_group, :miq_user_role => role_no_dynamic, :tenant => tenant_3) }
       let!(:user_1) { FactoryBot.create(:user, :userid => "user_1", :miq_groups => [group_tenant_1]) }
       let!(:user_2) { FactoryBot.create(:user, :userid => "user_2", :miq_groups => [group_tenant_2]) }
       let!(:user_3) { FactoryBot.create(:user, :userid => "user_3", :miq_groups => [group_3]) }
@@ -107,6 +108,8 @@ describe MiqUserRole do
       end
 
       it "authorize user with non-dynamic product feature" do
+        MiqProductFeature.where(:identifier => ["dialog_edit_editor_tenant_#{tenant_3.id}", "rbac_tenant_manage_quotas_tenant_#{tenant_3.id}"]).destroy_all
+
         User.with_user(user_3) do
           expect(user_3.role_allows?(:identifier => "dialog_edit_editor")).to be_truthy
           expect(user_3.role_allows?(:identifier => "rbac_tenant_manage_quotas")).to be_truthy
@@ -222,6 +225,8 @@ describe MiqUserRole do
   let(:tenant_admin_role) { FactoryBot.create(:miq_user_role, :features => MiqProductFeature::TENANT_ADMIN_FEATURE) }
   let(:report_admin_role) { FactoryBot.create(:miq_user_role, :features => MiqProductFeature::REPORT_ADMIN_FEATURE) }
   let(:request_admin_role) { FactoryBot.create(:miq_user_role, :features => MiqProductFeature::REQUEST_ADMIN_FEATURE) }
+  let(:report_only_my_tasks) { FactoryBot.create(:miq_user_role, :features => MiqProductFeature::MY_TASKS_FEATURE) }
+  let(:report_only_all_tasks) { FactoryBot.create(:miq_user_role, :features => MiqProductFeature::ALL_TASKS_FEATURE) }
   let(:regular_role) { FactoryBot.create(:miq_user_role) }
 
   describe "#super_admin_user?" do
@@ -235,6 +240,20 @@ describe MiqUserRole do
 
     it "detects non-admin" do
       expect(regular_role).not_to be_super_admin_user
+    end
+  end
+
+  describe "#only_my_user_tasks?" do
+    it "detects access limited to only the current users tasks" do
+      expect(report_only_my_tasks).to be_only_my_user_tasks
+    end
+
+    it "detects access not limited to only the current users tasks" do
+      expect(report_only_all_tasks).not_to be_only_my_user_tasks
+    end
+
+    it "detects no access to tasks" do
+      expect(regular_role).not_to be_only_my_user_tasks
     end
   end
 

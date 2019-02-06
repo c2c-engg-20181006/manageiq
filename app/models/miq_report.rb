@@ -150,7 +150,7 @@ class MiqReport < ApplicationRecord
 
     params['filter'] = MiqExpression.new("=" => {"field" => "MiqReport-id",
                                                  "value" => id})
-    params['towhat'] = "MiqReport"
+    params['resource_type'] = "MiqReport"
     params['prod_default'] = "system"
 
     MiqSchedule.create!(params)
@@ -240,6 +240,16 @@ class MiqReport < ApplicationRecord
 
   def self.display_name(number = 1)
     n_('Report', 'Reports', number)
+  end
+
+  def userid=(_userid)
+    # Stubbed method to handle 'userid' attr that may be present in the exported hash
+    # which does not exist in the MiqReport class
+  end
+
+  def group_description=(_group_description)
+    # Stubbed method to handle 'group_description' attr that may be present in the exported hash
+    # which does not exist in the MiqReport class
   end
 
   private

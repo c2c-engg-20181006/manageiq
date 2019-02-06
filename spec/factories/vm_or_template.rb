@@ -6,6 +6,10 @@ FactoryBot.define do
     vendor          "unknown"
     template        false
     raw_power_state "running"
+
+    trait :in_other_region do
+      other_region
+    end
   end
 
   factory :template, :class => "MiqTemplate", :parent => :vm_or_template do
@@ -31,7 +35,15 @@ FactoryBot.define do
     vendor "openstack"
   end
 
+  factory :volume_template_openstack, :class => "ManageIQ::Providers::Openstack::CloudManager::VolumeTemplate", :parent => :template_cloud do
+    vendor "openstack"
+  end
+  
   factory :template_orange, :class => "ManageIQ::Providers::Orange::CloudManager::Template", :parent => :template_cloud do
+    vendor "orange"
+  end
+
+  factory :volume_template_orange, :class => "ManageIQ::Providers::Orange::CloudManager::VolumeTemplate", :parent => :template_cloud do
     vendor "orange"
   end
 

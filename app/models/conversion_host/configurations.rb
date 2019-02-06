@@ -28,24 +28,25 @@ module ConversionHost::Configurations
     end
 
     def enable_queue(params, auth_user = nil)
-      resource_type = params[:resource_type]
-      resource_id = params[:resource_id]
-      resource = resource_type.constantize.find(resource_id)
+      params = params.symbolize_keys
+      resource = params.delete(:resource)
+
+      params[:resource_id] = resource.id
+      params[:resource_type] = resource.class.name
 
       queue_configuration('enable', nil, resource, [params], auth_user)
     end
 
     def enable(params)
+      params = params.symbolize_keys
       _log.info("Enabling a conversion_host with parameters: #{params}")
-      params.delete(:task_id) # in case this is being called through *_queue which will stick in a :task_id
-      params.delete(:miq_task_id) # miq_queue.activate_miq_task will stick in a :miq_task_id
 
-      vddk_url = params.delete("param_v2v_vddk_package_url")
-      resource_id = params[:resource_id]
-      resource_type = params[:resource_type]
-      resource = resource_type.constantize.find(resource_id)
+      params.delete(:task_id)     # In case this is being called through *_queue which will stick in a :task_id
+      params.delete(:miq_task_id) # The miq_queue.activate_miq_task will stick in a :miq_task_id
 
-      conversion_host = new(params.merge(:resource => resource))
+      vddk_url = params.delete(:param_v2v_vddk_package_url)
+
+      conversion_host = new(params)
       conversion_host.enable_conversion_host_role(vddk_url)
       conversion_host.save!
       conversion_host

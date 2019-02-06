@@ -96,6 +96,7 @@
     - BinaryBlobPart
     - CustomizationSpec
     - EventLog
+    - EventStream
     - FirewallRule
     - Host
     - Job
@@ -926,7 +927,7 @@
   :level_scvmm: info
   :level_vcloud: info
   :level_vim: warn
-  :level_websocket: info
+  :level_remote_console: info
 :notifications:
   :history:
     :purge_window_size: 1000
@@ -1009,6 +1010,7 @@
   :custom_brand: false
   :custom_login_logo: false
   :custom_logo: false
+  :custom_favicon: false
   :events:
     :disk_usage_gt_percent: 80
   :heartbeat_timeout: 2.minutes
@@ -1026,7 +1028,7 @@
   :prefetch_stale_threshold: 30.seconds
   :rails_server: puma
   :remote_console_type: VMRC
-  :role: database_operations,event,reporting,scheduler,smartstate,ems_operations,ems_inventory,user_interface,websocket,web_services,automate
+  :role: database_operations,event,reporting,scheduler,smartstate,ems_operations,ems_inventory,user_interface,remote_console,web_services,automate
   :server_dequeue_frequency: 5.seconds
   :server_log_frequency: 5.minutes
   :server_log_timings_threshold: 1.second
@@ -1288,7 +1290,7 @@
       :connection_pool_size: 8
       :memory_threshold: 1.gigabytes
       :nice_delta: 1
-    :websocket_worker:
+    :remote_console_worker:
       :connection_pool_size: 14
       :memory_threshold: 1.gigabytes
       :nice_delta: 1

@@ -39,6 +39,7 @@ gem "acts_as_tree",                   "~>2.7" # acts_as_tree needs to be require
 gem "ancestry",                       "~>3.0.4",       :require => false
 gem "bcrypt",                         "~> 3.1.10",     :require => false
 gem "bundler",                        ">=1.11.1",      :require => false
+gem "byebug",                                          :require => false
 gem "color",                          "~>1.8"
 gem "config",                         "~>1.6.0",       :require => false
 gem "dalli",                          "=2.7.6",        :require => false
@@ -51,7 +52,7 @@ gem "gettext_i18n_rails_js",          "~>1.3.0"
 gem "hamlit",                         "~>2.8.5"
 gem "highline",                       "~>1.6.21",      :require => false
 gem "inifile",                        "~>3.0",         :require => false
-gem "inventory_refresh",              "~>0.1.1",       :require => false
+gem "inventory_refresh",              "~>0.1.2",       :require => false
 gem "kubeclient",                     "~>4.0",         :require => false # For scaling pods at runtime
 gem "linux_admin",                    "~>1.2.1",       :require => false
 gem "log_decorator",                  "~>0.1",         :require => false
@@ -64,7 +65,8 @@ gem "more_core_extensions",           "~>3.5"
 gem "nakayoshi_fork",                 "~>0.0.3"  # provides a more CoW friendly fork (GC a few times before fork)
 gem "net-ldap",                       "~>0.16.1",      :require => false
 gem "net-ping",                       "~>1.7.4",       :require => false
-gem "openscap",                       "~>0.4.3",       :require => false
+gem "openscap",                       "~>0.4.8",       :require => false
+gem "optimist",                       "~>3.0",         :require => false
 gem "pg",                             "~>0.18.2",      :require => false
 gem "pg-dsn_parser",                  "~>0.1.0",       :require => false
 gem "query_relation",                 "~>0.1.0",       :require => false
@@ -78,8 +80,7 @@ gem "rubyzip",                        "~>1.2.2",       :require => false
 gem "rugged",                         "~>0.27.0",      :require => false
 gem "simple-rss",                     "~>1.3.1",       :require => false
 gem "snmp",                           "~>1.2.0",       :require => false
-gem "sqlite3",                                         :require => false
-gem "trollop",                        "~>2.1.3",       :require => false
+gem "sqlite3",                        "~>1.3.0",       :require => false
 
 # Modified gems (forked on Github)
 gem "ruport",                         "=1.7.0",                       :git => "https://github.com/ManageIQ/ruport.git", :tag => "v1.7.0-3"
@@ -162,7 +163,7 @@ end
 
 group :vmware, :manageiq_default do
   manageiq_plugin "manageiq-providers-vmware"
-  gem "vmware_web_service",             "~>0.3.0"
+  gem "vmware_web_service",             "~>0.4.0"
 end
 
 ### shared dependencies
@@ -198,7 +199,7 @@ group :seed, :manageiq_default do
 end
 
 group :smartstate, :manageiq_default do
-  gem "manageiq-smartstate",            "~>0.2.14",       :require => false
+  gem "manageiq-smartstate",            "~>0.2.19",       :require => false
 end
 
 group :consumption, :manageiq_default do
@@ -207,6 +208,7 @@ group :consumption, :manageiq_default do
 end
 
 group :ui_dependencies do # Added to Bundler.require in config/application.rb
+  manageiq_plugin "manageiq-decorators"
   c2c_manageiq_plugin "manageiq-ui-classic", "dev-orange"
   # Modified gems (forked on Github)
   gem "jquery-rjs",                   "=0.1.1",                       :git => "https://github.com/ManageIQ/jquery-rjs.git", :tag => "v0.1.1-1"
@@ -271,7 +273,13 @@ end
 def override_gem(name, *args)
   if dependencies.any?
     raise "Trying to override unknown gem #{name}" unless (dependency = dependencies.find { |d| d.name == name })
-    dependencies.delete(dependency)
+
+    removed_dependency = dependencies.delete(dependency)
+    if removed_dependency.source.kind_of?(Bundler::Source::Git)
+      @sources.send(:source_list_for, removed_dependency.source).delete_if do |other_source|
+        removed_dependency.source == other_source
+      end
+    end
 
     calling_file = caller_locations.detect { |loc| !loc.path.include?("lib/bundler") }.path
     calling_dir  = File.dirname(calling_file)
