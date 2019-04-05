@@ -2,6 +2,9 @@ raise "Ruby versions less than 2.3.1 are unsupported!" if RUBY_VERSION < "2.3.1"
 
 source 'https://rubygems.org'
 
+plugin "bundler-inject", "~> 1.1"
+require File.join(Bundler::Plugin.index.load_paths("bundler-inject")[0], "bundler-inject") rescue nil
+
 #
 # VMDB specific gems
 #
@@ -17,15 +20,8 @@ def manageiq_plugin(plugin_name)
   end
 end
 
-
-def c2c_manageiq_plugin(plugin_name, branch_name)
-  unless dependencies.detect { |d| d.name == plugin_name }
-    gem plugin_name, :git => "https://github.com/Click2Cloud/#{plugin_name}", :branch => branch_name
-  end
-end
-
-manageiq_plugin "manageiq-providers-ansible_tower"
-c2c_manageiq_plugin "manageiq-schema", "dev"
+manageiq_plugin "manageiq-providers-ansible_tower" # can't move this down yet, because we can't autoload ManageIQ::Providers::AnsibleTower::Shared
+manageiq_plugin "manageiq-schema"
 
 # Unmodified gems
 gem "activerecord-id_regions",        "~>0.2.0"
@@ -33,7 +29,7 @@ gem "activerecord-session_store",     "~>1.1"
 gem "acts_as_tree",                   "~>2.7" # acts_as_tree needs to be required so that it loads before ancestry
 gem "ancestry",                       "~>3.0.4",       :require => false
 gem "bcrypt",                         "~> 3.1.10",     :require => false
-gem "bundler",                        ">=1.11.1",      :require => false
+gem "bundler",                        ">=1.15",        :require => false
 gem "byebug",                                          :require => false
 gem "color",                          "~>1.8"
 gem "config",                         "~>1.6.0",       :require => false
@@ -51,8 +47,9 @@ gem "inventory_refresh",              "~>0.1.2",       :require => false
 gem "kubeclient",                     "~>4.0",         :require => false # For scaling pods at runtime
 gem "linux_admin",                    "~>1.2.1",       :require => false
 gem "log_decorator",                  "~>0.1",         :require => false
-gem "manageiq-api-client",            "~>0.3.2",       :require => false
+gem "manageiq-api-client",            "~>0.3.3",       :require => false
 gem "manageiq-messaging",                              :require => false, :git => "https://github.com/ManageIQ/manageiq-messaging", :branch => "master"
+gem "manageiq-password",              "~>0.3",         :require => false
 gem "manageiq-postgres_ha_admin",     "~>3.0",         :require => false
 gem "memoist",                        "~>0.15.0",      :require => false
 gem "mime-types",                     "~>3.0",         :path => File.expand_path("mime-types-redirector", __dir__)
@@ -60,22 +57,21 @@ gem "more_core_extensions",           "~>3.5"
 gem "nakayoshi_fork",                 "~>0.0.3"  # provides a more CoW friendly fork (GC a few times before fork)
 gem "net-ldap",                       "~>0.16.1",      :require => false
 gem "net-ping",                       "~>1.7.4",       :require => false
-gem "openscap",                       "~>0.4.3",       :require => false
-gem "pg",                             "~>0.18.2",      :require => false
+gem "openscap",                       "~>0.4.8",       :require => false
+gem "optimist",                       "~>3.0",         :require => false
+gem "pg",                                              :require => false
 gem "pg-dsn_parser",                  "~>0.1.0",       :require => false
 gem "query_relation",                 "~>0.1.0",       :require => false
-gem "rails",                          "~>5.0.7.1"
+gem "rails",                          "~>5.0.7.2"
 gem "rails-i18n",                     "~>5.x"
 gem "rake",                           ">=11.0",        :require => false
 gem "rest-client",                    "~>2.0.0",       :require => false
-gem "ripper_ruby_parser",             "~>1.2.0",       :require => false
+gem "ripper_ruby_parser",             "~>1.5.1",       :require => false
 gem "ruby-progressbar",               "~>1.7.0",       :require => false
 gem "rubyzip",                        "~>1.2.2",       :require => false
 gem "rugged",                         "~>0.27.0",      :require => false
-gem "simple-rss",                     "~>1.3.1",       :require => false
 gem "snmp",                           "~>1.2.0",       :require => false
-gem "sqlite3",                                         :require => false
-gem "trollop",                        "~>2.1.3",       :require => false
+gem "sqlite3",                        "~>1.3.0",       :require => false
 
 # Modified gems (forked on Github)
 gem "ruport",                         "=1.7.0",                       :git => "https://github.com/ManageIQ/ruport.git", :tag => "v1.7.0-3"
@@ -90,16 +86,6 @@ gem "american_date"
 # This default is used to automatically require all of our gems in processes that don't specify which bundler groups they want.
 #
 ### providers
-
-#gem "manageiq-providers-telefonica" ,:require=>false, :git=>"https://github.com/click2cloud/manageiq-providers-telefonica.git", :branch=>"dev-aniket"
-#c2c_manageiq_plugin "manageiq-providers-telefonica", "master"
-gem 'manageiq-providers-telefonica', :path => '../manageiq-providers-telefonica'
-gem 'manageiq-providers-orange', :path => '../manageiq-providers-orange'
-
-group :openstack, :manageiq_default do
-  manageiq_plugin "manageiq-providers-openstack"
-end
-
 group :amazon, :manageiq_default do
   manageiq_plugin "manageiq-providers-amazon"
   gem "amazon_ssa_support",                          :require => false, :git => "https://github.com/ManageIQ/amazon_ssa_support.git", :branch => "master" # Temporary dependency to be moved to manageiq-providers-amazon when officially release
@@ -139,12 +125,15 @@ group :redfish, :manageiq_default do
 end
 
 group :qpid_proton, :optional => true do
-  gem "qpid_proton",                    "~>0.22.0",      :require => false
+  gem "qpid_proton",                    "~>0.26.0",      :require => false
 end
 
 group :openshift, :manageiq_default do
   manageiq_plugin "manageiq-providers-openshift"
-  gem "htauth",                         "2.0.0",         :require => false # used by container deployment
+end
+
+group :openstack, :manageiq_default do
+  manageiq_plugin "manageiq-providers-openstack"
 end
 
 group :ovirt, :manageiq_default do
@@ -158,7 +147,7 @@ end
 
 group :vmware, :manageiq_default do
   manageiq_plugin "manageiq-providers-vmware"
-  gem "vmware_web_service",             "~>0.3.0"
+  gem "vmware_web_service",             "~>0.4.0"
 end
 
 ### shared dependencies
@@ -194,7 +183,7 @@ group :seed, :manageiq_default do
 end
 
 group :smartstate, :manageiq_default do
-  gem "manageiq-smartstate",            "~>0.2.18",       :require => false
+  gem "manageiq-smartstate",            "~>0.2.19",       :require => false
 end
 
 group :consumption, :manageiq_default do
@@ -203,13 +192,14 @@ group :consumption, :manageiq_default do
 end
 
 group :ui_dependencies do # Added to Bundler.require in config/application.rb
-  c2c_manageiq_plugin "manageiq-ui-classic", "dev"
+  manageiq_plugin "manageiq-decorators"
+  manageiq_plugin "manageiq-ui-classic"
   # Modified gems (forked on Github)
   gem "jquery-rjs",                   "=0.1.1",                       :git => "https://github.com/ManageIQ/jquery-rjs.git", :tag => "v0.1.1-1"
 end
 
 group :v2v, :ui_dependencies do
-  gem "manageiq-v2v", :git => "https://github.com/ManageIQ/miq_v2v_ui_plugin.git", :branch => "master"
+  manageiq_plugin "manageiq-v2v"
 end
 
 group :web_server, :manageiq_default do
@@ -220,8 +210,8 @@ group :web_server, :manageiq_default do
 end
 
 group :web_socket, :manageiq_default do
-  gem "surro-gate",                     "~>1.0.4"
-  gem "websocket-driver",               "~>0.6.3"
+  gem "surro-gate",                     "~>1.0.5", :require => false
+  gem "websocket-driver",               "~>0.6.3", :require => false
 end
 
 ### Start of gems excluded from the appliances.
@@ -254,39 +244,3 @@ unless ENV["APPLIANCE"]
     gem "rspec-rails",      "~>3.6.0"
   end
 end
-
-#
-# Custom Gemfile modifications
-#
-# To develop a gem locally and override its source to a checked out repo
-#   you can use this helper method in Gemfile.dev.rb e.g.
-#
-# override_gem 'manageiq-ui-classic', :path => "../manageiq-ui-classic"
-#
-def override_gem(name, *args)
-  if dependencies.any?
-    raise "Trying to override unknown gem #{name}" unless (dependency = dependencies.find { |d| d.name == name })
-
-    removed_dependency = dependencies.delete(dependency)
-    if removed_dependency.source.kind_of?(Bundler::Source::Git)
-      @sources.send(:source_list_for, removed_dependency.source).delete_if do |other_source|
-        removed_dependency.source == other_source
-      end
-    end
-
-    calling_file = caller_locations.detect { |loc| !loc.path.include?("lib/bundler") }.path
-    calling_dir  = File.dirname(calling_file)
-
-    args.last[:path] = File.expand_path(args.last[:path], calling_dir) if args.last.kind_of?(Hash) && args.last[:path]
-    gem(name, *args).tap do
-      warn "** override_gem: #{name}, #{args.inspect}, caller: #{calling_file}" unless ENV["RAILS_ENV"] == "production"
-    end
-  end
-end
-
-# Load other additional Gemfiles
-#   Developers can create a file ending in .rb under bundler.d/ to specify additional development dependencies
-Dir.glob(File.join(__dir__, 'bundler.d/*.rb')).each { |f| eval_gemfile(File.expand_path(f, __dir__)) }
-
-# Added at 2018-08-29 23:12:07 +0530 by root:
-# gem "fog-telefonica", "~> 0.1.27", :require => false, :git => "https://github.com/Click2Cloud/fog-telefonica", :branch => "master"
