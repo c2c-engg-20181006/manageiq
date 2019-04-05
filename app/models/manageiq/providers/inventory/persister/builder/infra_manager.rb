@@ -55,13 +55,6 @@ module ManageIQ::Providers
           )
         end
 
-        def operating_systems
-          add_properties(
-            :manager_ref                  => %i(vm_or_template),
-            :parent_inventory_collections => %i(vms miq_templates),
-          )
-        end
-
         def host_operating_systems
           add_properties(
             :model_class                  => ::OperatingSystem,
@@ -205,9 +198,17 @@ module ManageIQ::Providers
           )
         end
 
-        def switches
+        def host_virtual_switches
           add_properties(
-            :manager_ref => %i(uid_ems), # TODO looks like switches are using a bad association, this one is defined as through hosts
+            :manager_ref                  => %i(host uid_ems),
+            :model_class                  => Switch,
+            :parent_inventory_collections => %i(hosts)
+          )
+        end
+
+        def distributed_virtual_switches
+          add_properties(
+            :manager_ref => %i(uid_ems)
           )
           add_common_default_values
         end

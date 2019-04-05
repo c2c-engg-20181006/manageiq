@@ -119,6 +119,8 @@ class Dialog < ApplicationRecord
   end
 
   def init_fields_with_values_for_request(values)
+    values = values.with_indifferent_access
+
     dialog_field_hash.each do |_key, field|
       field.value = values[field.automate_key_name] || values[field.name]
     end
@@ -183,7 +185,8 @@ class Dialog < ApplicationRecord
   def reject_if_has_resource_actions
     if resource_actions.length > 0
       connected_components = resource_actions.collect { |ra| ra.resource_type.constantize.find(ra.resource_id) }
-      raise _("Dialog cannot be deleted because it is connected to other components: #{connected_components.map { |cc| cc.class.name + ":" + cc.id.to_s + " - " + cc.try(:name) }}")
+      errors.add(:base, _("Dialog cannot be deleted because it is connected to other components: #{connected_components.map { |cc| cc.class.name + ":" + cc.id.to_s + " - " + cc.try(:name) }}"))
+      throw :abort
     end
   end
 

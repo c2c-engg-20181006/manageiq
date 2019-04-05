@@ -5672,11 +5672,6 @@ msgid "Discover"
 msgstr ""
 
 #. TRANSLATORS: file: db/fixtures/miq_product_features.yml
-#: ../config/yaml_strings.rb:311
-msgid "Discover Cloud Providers"
-msgstr ""
-
-#. TRANSLATORS: file: db/fixtures/miq_product_features.yml
 #: ../config/yaml_strings.rb:615
 msgid "Discover Infrastructure Providers"
 msgstr ""

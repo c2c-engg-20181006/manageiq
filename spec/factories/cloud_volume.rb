@@ -4,7 +4,7 @@ FactoryBot.define do
   end
 
   factory :cloud_volume_openstack, :class => "ManageIQ::Providers::Openstack::CloudManager::CloudVolume", :parent => :cloud_volume do
-    status "available"
+    status { "available" }
   end
 
   factory :cloud_volume_telefonica, :class => "ManageIQ::Providers::Telefonica::CloudManager::CloudVolume", :parent => :cloud_volume do

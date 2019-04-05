@@ -36,7 +36,6 @@ class ExtManagementSystem < ApplicationRecord
   has_many :child_managers, :class_name => 'ExtManagementSystem', :foreign_key => 'parent_ems_id'
 
   belongs_to :tenant
-  has_many :container_deployments, :foreign_key => :deployed_on_ems_id, :inverse_of => :deployed_on_ems
   has_many :endpoints, :as => :resource, :dependent => :destroy, :autosave => true
 
   has_many :hosts, :foreign_key => "ems_id", :dependent => :nullify, :inverse_of => :ext_management_system
@@ -195,6 +194,8 @@ class ExtManagementSystem < ApplicationRecord
   virtual_column :total_vms_suspended,     :type => :integer
   virtual_total  :total_subnets,           :cloud_subnets
   virtual_column :supports_block_storage,  :type => :boolean
+  virtual_column :supports_volume_multiattachment, :type => :boolean
+  virtual_column :supports_volume_resizing, :type => :boolean
   virtual_column :supports_cloud_object_store_container_create, :type => :boolean
   virtual_column :supports_cinder_volume_types, :type => :boolean
 
@@ -209,18 +210,6 @@ class ExtManagementSystem < ApplicationRecord
   default_value_for :enabled, true
 
   after_save :change_maintenance_for_child_managers, :if => proc { |ems| ems.enabled_changed? }
-
-  def disable!
-    _log.info("Disabling EMS [#{name}] id [#{id}].")
-    update!(:enabled => false)
-    _log.info("Disabling EMS [#{name}] id [#{id}] successful.")
-  end
-
-  def enable!
-    _log.info("Enabling EMS [#{name}] id [#{id}].")
-    update!(:enabled => true)
-    _log.info("Enabling EMS [#{name}] id [#{id}] successful.")
-  end
 
   # Move ems to maintenance zone and backup current one
   # @param orig_zone [Integer] because of zone of child manager can be changed by parent manager's ensure_managers() callback
@@ -348,6 +337,15 @@ class ExtManagementSystem < ApplicationRecord
 
   def self.provision_workflow_class
     self::ProvisionWorkflow
+  end
+
+  BELONGS_TO_DESCENDANTS_CLASSES_BY_NAME = {
+    'Network Manager' => 'ManageIQ::Providers::NetworkManager'
+  }.freeze
+
+  def self.belongsto_descendant_class(name)
+    return unless (descendant = BELONGS_TO_DESCENDANTS_CLASSES_BY_NAME.keys.detect { |x| name.end_with?(x) })
+    BELONGS_TO_DESCENDANTS_CLASSES_BY_NAME[descendant]
   end
 
   # UI methods for determining availability of fields
@@ -643,6 +641,14 @@ class ExtManagementSystem < ApplicationRecord
     supports_block_storage?
   end
 
+  def supports_volume_multiattachment
+    supports_volume_multiattachment?
+  end
+
+  def supports_volume_resizing
+    supports_volume_resizing?
+  end
+
   def supports_cloud_object_store_container_create
     supports_cloud_object_store_container_create?
   end
@@ -805,6 +811,12 @@ class ExtManagementSystem < ApplicationRecord
   end
 
   private
+
+  def disable!
+    _log.info("Disabling EMS [#{name}] id [#{id}].")
+    update!(:enabled => false)
+    _log.info("Disabling EMS [#{name}] id [#{id}] successful.")
+  end
 
   # Child managers went to/from maintenance mode with parent
   def change_maintenance_for_child_managers

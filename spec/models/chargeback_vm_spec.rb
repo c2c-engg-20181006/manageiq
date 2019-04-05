@@ -423,6 +423,39 @@ describe ChargebackVm do
             expect(subject.cpu_allocated_cost).to eq(1200) # ?
           end
         end
+
+        context "current month and previous month" do
+          let(:options) { base_options.merge(:interval => 'monthly') }
+          let(:finish_time) { Time.current }
+          let(:finish_time_formatted) { finish_time.strftime('%m/%d/%Y') }
+          let(:report_start) { month_end + 2.days }
+          subject { ChargebackVm.build_results_for_report_ChargebackVm(options).first }
+
+          let(:first_month_beginning) { month_beginning }
+          let(:first_month_beginning_formatted) { first_month_beginning.strftime('%m/%d/%Y') }
+          let(:second_month_beginning) { month_beginning + 1.month }
+          let(:second_month_beginning_formatted) { second_month_beginning.strftime('%m/%d/%Y') }
+
+          before do
+            Timecop.travel(report_start)
+            @vm1.update_attributes(:retires_on => finish_time)
+            add_metric_rollups_for(@vm1, month_beginning...finish_time, 8.hours, metric_rollup_params)
+          end
+
+          it "reports report interval range and report generation date" do
+            skip('this feature needs to be added to new chargeback') if Settings.new_chargeback
+
+            # reporting of first month
+            report_range = "#{first_month_beginning_formatted} - #{second_month_beginning_formatted}"
+            expect(subject.first.report_interval_range).to eq(report_range)
+            expect(subject.first.report_generation_date.strftime('%m/%d/%Y')).to eq(finish_time_formatted)
+
+            # reporting of second month
+            report_range = "#{second_month_beginning_formatted} - #{(second_month_beginning + 2.days).strftime('%m/%d/%Y')}"
+            expect(subject.second.report_interval_range).to eq(report_range)
+            expect(subject.second.report_generation_date.strftime('%m/%d/%Y')).to eq(finish_time_formatted)
+          end
+        end
       end
 
       context 'monthly report, group by tenants' do
@@ -1179,10 +1212,6 @@ describe ChargebackVm do
           let(:vm_global)       { FactoryBot.create(:vm_vmware) }
           let!(:region_1) { FactoryBot.create(:miq_region) }
 
-          def region_id_for(klass, region)
-            klass.id_in_region(klass.count + 1_000_000, region)
-          end
-
           def find_result_by_vm_name_and_region(chargeback_result, vm_name, region)
             first_region_id, last_region_id = MiqRegion.region_to_array(region)
 
@@ -1221,43 +1250,66 @@ describe ChargebackVm do
           #   T3(vm_1, vm_2)
           #
           let!(:root_tenant_region_1) do
-            tenant = FactoryBot.create(:tenant, :id => region_id_for(Tenant, region_1.region))
-            tenant.parent = nil
-            tenant.save(:validate => false) # skip validate to set parent = nil
-            tenant
+            tenant_other_region = FactoryGirl.create(:tenant, :in_other_region, :other_region => region_1)
+            tenant_other_region.update_attribute(:parent, nil) # rubocop:disable Rails/SkipsModelValidations
+            tenant_other_region
           end
 
-          let!(:tenant_1_region_1) { FactoryBot.create(:tenant, :id => region_id_for(Tenant, region_1.region), :name => tenant_name_1, :parent => root_tenant_region_1, :description => tenant_name_1) }
-          let(:vm_1_region_1_t_1) { FactoryBot.create(:vm_vmware, :id => region_id_for(Vm, region_1.region), :tenant => tenant_2_region_1, :name => vm_name_1) }
-          let(:vm_2_region_1_t_1) { FactoryBot.create(:vm_vmware, :id => region_id_for(Vm, region_1.region), :tenant => tenant_2_region_1) }
+          let!(:tenant_1_region_1) { FactoryBot.create(:tenant, :in_other_region, :other_region => region_1, :name => tenant_name_1, :parent => root_tenant_region_1, :description => tenant_name_1) }
+          let(:vm_1_region_1_t_1) { FactoryBot.create(:vm_vmware, :in_other_region, :other_region => region_1, :tenant => tenant_1_region_1, :name => vm_name_1) }
+          let(:vm_2_region_1_t_1) { FactoryBot.create(:vm_vmware, :in_other_region, :other_region => region_1, :tenant => tenant_1_region_1) }
 
-          let!(:tenant_2_region_1) { FactoryBot.create(:tenant, :id => region_id_for(Tenant, region_1.region), :name => tenant_name_2, :parent => tenant_1_region_1, :description => tenant_name_2) }
-          let(:vm_1_region_1_t_2) { FactoryBot.create(:vm_vmware, :id => region_id_for(Vm, region_1.region), :tenant => tenant_2_region_1) }
-          let(:vm_2_region_1_t_2) { FactoryBot.create(:vm_vmware, :id => region_id_for(Vm, region_1.region), :tenant => tenant_2_region_1) }
+          let!(:tenant_2_region_1) { FactoryBot.create(:tenant, :in_other_region, :other_region => region_1, :name => tenant_name_2, :parent => tenant_1_region_1, :description => tenant_name_2) }
+          let(:vm_1_region_1_t_2) { FactoryBot.create(:vm_vmware, :in_other_region, :other_region => region_1, :tenant => tenant_2_region_1) }
+          let(:vm_2_region_1_t_2) { FactoryBot.create(:vm_vmware, :in_other_region, :other_region => region_1, :tenant => tenant_2_region_1) }
 
-          let!(:tenant_3_region_1) { FactoryBot.create(:tenant, :id => region_id_for(Tenant, region_1.region), :name => tenant_name_3, :parent => tenant_1_region_1, :description => tenant_name_3) }
-          let(:vm_1_region_1_t_3) { FactoryBot.create(:vm_vmware, :id => region_id_for(Vm, region_1.region), :tenant => tenant_3_region_1) }
-          let(:vm_2_region_1_t_3) { FactoryBot.create(:vm_vmware, :id => region_id_for(Vm, region_1.region), :tenant => tenant_3_region_1) }
+          let!(:tenant_3_region_1) { FactoryBot.create(:tenant, :in_other_region, :other_region => region_1, :name => tenant_name_3, :parent => tenant_1_region_1, :description => tenant_name_3) }
+          let(:vm_1_region_1_t_3) { FactoryBot.create(:vm_vmware, :in_other_region, :other_region => region_1, :tenant => tenant_3_region_1) }
+          let(:vm_2_region_1_t_3) { FactoryBot.create(:vm_vmware, :in_other_region, :other_region => region_1, :tenant => tenant_3_region_1) }
 
           before do
             # default region
-            add_metric_rollups_for(vm_1_t_1, month_beginning...month_end, 12.hours, metric_rollup_params, :with_data)
-            add_metric_rollups_for(vm_2_t_1, month_beginning...month_end, 12.hours, metric_rollup_params, :with_data)
-            add_metric_rollups_for(vm_1_t_2, month_beginning...month_end, 12.hours, metric_rollup_params, :with_data)
-            add_metric_rollups_for(vm_2_t_2, month_beginning...month_end, 12.hours, metric_rollup_params, :with_data)
-            add_metric_rollups_for(vm_1_t_3, month_beginning...month_end, 12.hours, metric_rollup_params, :with_data)
-            add_metric_rollups_for(vm_2_t_3, month_beginning...month_end, 12.hours, metric_rollup_params, :with_data)
+            add_metric_rollups_for(vm_1_t_1, month_beginning...month_end, 12.hours, metric_rollup_params)
+            add_metric_rollups_for(vm_2_t_1, month_beginning...month_end, 12.hours, metric_rollup_params)
+            add_metric_rollups_for(vm_1_t_2, month_beginning...month_end, 12.hours, metric_rollup_params)
+            add_metric_rollups_for(vm_2_t_2, month_beginning...month_end, 12.hours, metric_rollup_params)
+            add_metric_rollups_for(vm_1_t_3, month_beginning...month_end, 12.hours, metric_rollup_params)
+            add_metric_rollups_for(vm_2_t_3, month_beginning...month_end, 12.hours, metric_rollup_params)
 
+            metric_rollup_params_with_other_region = metric_rollup_params
+            metric_rollup_params_with_other_region[:other_region] = region_1
             # region 1
-            add_metric_rollups_for(vm_1_region_1_t_1, month_beginning...month_end, 12.hours, metric_rollup_params, :with_data, region_1.region)
-            add_metric_rollups_for(vm_2_region_1_t_1, month_beginning...month_end, 12.hours, metric_rollup_params, :with_data, region_1.region)
-            add_metric_rollups_for(vm_1_region_1_t_2, month_beginning...month_end, 12.hours, metric_rollup_params, :with_data, region_1.region)
-            add_metric_rollups_for(vm_2_region_1_t_2, month_beginning...month_end, 12.hours, metric_rollup_params, :with_data, region_1.region)
-            add_metric_rollups_for(vm_1_region_1_t_3, month_beginning...month_end, 12.hours, metric_rollup_params, :with_data, region_1.region)
-            add_metric_rollups_for(vm_2_region_1_t_3, month_beginning...month_end, 12.hours, metric_rollup_params, :with_data, region_1.region)
+            add_metric_rollups_for(vm_1_region_1_t_1, month_beginning...month_end, 12.hours, metric_rollup_params_with_other_region, %i(with_data in_other_region))
+            add_metric_rollups_for(vm_2_region_1_t_1, month_beginning...month_end, 12.hours, metric_rollup_params_with_other_region, %i(with_data in_other_region))
+            add_metric_rollups_for(vm_1_region_1_t_2, month_beginning...month_end, 12.hours, metric_rollup_params_with_other_region, %i(with_data in_other_region))
+            add_metric_rollups_for(vm_2_region_1_t_2, month_beginning...month_end, 12.hours, metric_rollup_params_with_other_region, %i(with_data in_other_region))
+            add_metric_rollups_for(vm_1_region_1_t_3, month_beginning...month_end, 12.hours, metric_rollup_params_with_other_region, %i(with_data in_other_region))
+            add_metric_rollups_for(vm_2_region_1_t_3, month_beginning...month_end, 12.hours, metric_rollup_params_with_other_region, %i(with_data in_other_region))
           end
 
           subject! { ChargebackVm.build_results_for_report_ChargebackVm(options_tenant).first }
+
+          context "tenants don't exist" do
+            let(:unknown_number) { 999_999_999 }
+            let(:options_with_tenant_only_in_default_region) { base_options.merge(:interval => 'monthly', :tenant_id => tenant_default_region.id).tap { |t| t.delete(:tag) } }
+            let!(:tenant_default_region) { FactoryBot.create(:tenant, :parent => Tenant.root_tenant) }
+
+            it "raises error" do
+              skip('this feature needs to be added to new chargeback rating') if Settings.new_chargeback
+              exception_message = "Unable to find tenant '#{tenant_default_region.name}' (based on tenant id '#{tenant_default_region.id}' from default region) in region #{region_1.region}"
+              expect { ChargebackVm.build_results_for_report_ChargebackVm(options_with_tenant_only_in_default_region) }.to raise_error(MiqException::Error, exception_message)
+            end
+
+            context "tenant in default region doesn't exists" do
+              let(:options_with_missing_tenant) { base_options.merge(:interval => 'monthly', :tenant_id => unknown_number).tap { |t| t.delete(:tag) } }
+
+              it "raises error" do
+                skip('this feature needs to be added to new chargeback rating') if Settings.new_chargeback
+                exception_message = "Unable to find tenant '#{unknown_number}'"
+                expect { ChargebackVm.build_results_for_report_ChargebackVm(options_with_missing_tenant) }.to raise_error(exception_message)
+              end
+            end
+          end
 
           it "report from all regions and only for tenant_1" do
             skip('this feature needs to be added to new chargeback rating') if Settings.new_chargeback

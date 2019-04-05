@@ -1,18 +1,23 @@
 describe ConversionHost do
   let(:conversion_host) { FactoryBot.create(:conversion_host, :resource => vm) }
+  let(:conversion_host_ssh) { FactoryBot.create(:conversion_host, :resource => vm, :ssh_transport_supported => true) }
+  let(:conversion_host_vddk) { FactoryBot.create(:conversion_host, :resource => vm, :vddk_transport_supported => true) }
   let(:params) do
     {
       :name          => 'transformer',
-      :resource_type => vm.class.name,
-      :resource_id   => vm.id
+      :resource_type => vm.class.base_class.name,
+      :resource_id   => vm.id,
+      :resource      => vm
     }
   end
 
   context "processing configuration requests" do
-    let(:vm) { FactoryBot.create(:vm) }
+    let(:vm) { FactoryBot.create(:vm_openstack) }
+
     before(:each) do
       allow(ConversionHost).to receive(:new).and_return(conversion_host)
     end
+
     context ".enable" do
       let(:expected_notify) do
         {
@@ -23,6 +28,7 @@ describe ConversionHost do
           }
         }
       end
+
       it "to succeed and send notification" do
         allow(conversion_host).to receive(:enable_conversion_host_role)
         expect(Notification).to receive(:create).with(expected_notify)
@@ -34,6 +40,36 @@ describe ConversionHost do
         allow(conversion_host).to receive(:enable_conversion_host_role).and_raise
         expect(Notification).to receive(:create).with(expected_notify)
         expect { described_class.enable(params) }.to raise_error(StandardError)
+      end
+
+      context "transport method is SSH" do
+        let(:conversion_host) { conversion_host_ssh }
+
+        it "tags the associated resource as expected" do
+          allow(conversion_host).to receive(:enable_conversion_host_role)
+          taggings = conversion_host.resource.taggings
+          tag_names = taggings.map { |tagging| tagging.tag.name }
+
+          expect(tag_names).to contain_exactly(
+            '/user/v2v_transformation_host/true',
+            '/user/v2v_transformation_method/ssh'
+          )
+        end
+      end
+
+      context "transport method is VDDK" do
+        let(:conversion_host) { conversion_host_vddk }
+
+        it "tags the associated resource as expected" do
+          allow(conversion_host).to receive(:enable_conversion_host_role)
+          taggings = conversion_host.resource.taggings
+          tag_names = taggings.map { |tagging| tagging.tag.name }
+
+          expect(tag_names).to contain_exactly(
+            '/user/v2v_transformation_host/true',
+            '/user/v2v_transformation_method/vddk'
+          )
+        end
       end
     end
 
@@ -60,22 +96,34 @@ describe ConversionHost do
         expect(Notification).to receive(:create).with(expected_notify)
         expect { conversion_host.disable }.to raise_error(StandardError)
       end
+
+      it "tags the associated resource as expected" do
+        allow(conversion_host).to receive(:disable_conversion_host_role)
+        expect(Notification).to receive(:create).with(expected_notify)
+        conversion_host.disable
+        taggings = conversion_host.resource.taggings
+        tag_names = taggings.map { |tagging| tagging.tag.name }
+
+        expect(tag_names).to contain_exactly('/user/v2v_transformation_host/false')
+      end
     end
   end
 
   context "queuing configuration requests" do
     let(:ext_management_system) { FactoryBot.create(:ext_management_system) }
-    let(:vm) { FactoryBot.create(:vm, :ext_management_system => ext_management_system) }
-    let(:expected_task_action) { "Configuring a conversion_host: operation=#{op} resource=(type: #{vm.class.name} id:#{vm.id})" }
+    let(:vm) { FactoryBot.create(:vm_openstack, :ext_management_system => ext_management_system) }
+    let(:expected_task_action) { "Configuring a conversion_host: operation=#{op} resource=(name: #{vm.name} type: #{vm.class.name} id: #{vm.id})" }
 
     context ".enable_queue" do
       let(:op) { 'enable' }
 
       it "to queue with a task" do
         task_id = described_class.enable_queue(params)
-        expect(MiqTask.find(task_id)).to have_attributes(:name => expected_task_action)
+        expected_context_data = {:request_params => params.except(:resource)}
+
+        expect(MiqTask.find(task_id)).to have_attributes(:name => expected_task_action, :context_data => expected_context_data)
         expect(MiqQueue.first).to have_attributes(
-          :args        => [params],
+          :args        => [params.merge(:task_id => task_id).except(:resource), nil],
           :class_name  => described_class.name,
           :method_name => "enable",
           :priority    => MiqQueue::NORMAL_PRIORITY,
@@ -84,9 +132,11 @@ describe ConversionHost do
         )
       end
 
-      it "to fail when the resource is not found" do
-        vm.destroy!
-        expect { described_class.enable_queue(params) }.to raise_error(ActiveRecord::RecordNotFound)
+      it "rejects ssh key information as context data" do
+        task_id = described_class.enable_queue(params.merge(:conversion_host_ssh_private_key => 'xxx', :vmware_ssh_private_key => 'yyy'))
+        expected_context_data = {:request_params => params.except(:resource)}
+
+        expect(MiqTask.find(task_id)).to have_attributes(:name => expected_task_action, :context_data => expected_context_data)
       end
     end
 
@@ -97,7 +147,7 @@ describe ConversionHost do
         task_id = conversion_host.disable_queue
         expect(MiqTask.find(task_id)).to have_attributes(:name => expected_task_action)
         expect(MiqQueue.first).to have_attributes(
-          :args        => [],
+          :args        => [{:task_id => task_id}, nil],
           :class_name  => described_class.name,
           :instance_id => conversion_host.id,
           :method_name => "disable",

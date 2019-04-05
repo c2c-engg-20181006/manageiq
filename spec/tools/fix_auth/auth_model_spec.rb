@@ -5,19 +5,19 @@ require "fix_auth/auth_config_model"
 require "fix_auth/models"
 
 describe FixAuth::AuthModel do
-  let(:v0_key)  { MiqPassword::Key.new("AES-128-CBC", Base64.encode64("9999999999999999"), Base64.encode64("5555555555555555")) }
-  let(:v1_key)  { MiqPassword.generate_symmetric }
+  let(:v0_key)  { ManageIQ::Password::Key.new("AES-128-CBC", Base64.encode64("9999999999999999"), Base64.encode64("5555555555555555")) }
+  let(:v1_key)  { ManageIQ::Password.generate_symmetric }
   let(:pass)    { "password" }
-  let(:enc_v1)  { MiqPassword.new.encrypt(pass, "v1", v1_key) }
-  let(:enc_v2)  { MiqPassword.new.encrypt(pass) }
+  let(:enc_v1)  { ManageIQ::Password.new.encrypt(pass, "v1", v1_key) }
+  let(:enc_v2)  { ManageIQ::Password.new.encrypt(pass) }
   let(:bad_v2)  { "v2:{5555555555555555555555==}" }
 
   before do
-    MiqPassword.add_legacy_key(v1_key, :v1)
+    ManageIQ::Password.add_legacy_key(v1_key, :v1)
   end
 
   after do
-    MiqPassword.clear_keys
+    ManageIQ::Password.clear_keys
   end
 
   context "#authentications" do
@@ -83,7 +83,7 @@ describe FixAuth::AuthModel do
       end
 
       it "should raise exception for bad encryption" do
-        expect { subject.fix_passwords(badv2) }.to raise_error(MiqPassword::MiqPasswordError)
+        expect { subject.fix_passwords(badv2) }.to raise_error(ManageIQ::Password::PasswordError)
       end
 
       it "should replace for bad encryption" do
@@ -111,14 +111,16 @@ describe FixAuth::AuthModel do
     it "uses random numbers for hardcode" do
       subject.fix_passwords(v1, :hardcode => "newpass")
       expect(v1.session_secret_token).to be_encrypted_version(2)
-      expect(v1.session_secret_token).not_to be_encrypted("newpass")
+      expect(v1.session_secret_token).to be_encrypted
+      expect(ManageIQ::Password.decrypt(v1.session_secret_token)).to_not eq "newpass"
       expect(v1.session_secret_token).not_to eq(enc_v2)
     end
 
     it "uses random numbers for invalid" do
       subject.fix_passwords(bad, :invalid => "newpass")
       expect(bad.session_secret_token).to be_encrypted_version(2)
-      expect(bad.session_secret_token).not_to be_encrypted("newpass")
+      expect(bad.session_secret_token).to be_encrypted
+      expect(ManageIQ::Password.decrypt(bad.session_secret_token)).to_not eq "newpass"
       expect(bad.session_secret_token).not_to eq(enc_v2)
     end
 

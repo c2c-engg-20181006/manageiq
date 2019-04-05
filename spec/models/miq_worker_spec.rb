@@ -207,6 +207,41 @@ describe MiqWorker do
       end
     end
 
+    context "with mixed memory value types" do
+      # Same settings from above, just using integers and integers/floats as strings
+      let(:settings) do
+        {
+          :workers => {
+            :worker_base => {
+              :defaults          => {:memory_threshold => "100.megabytes"},
+              :queue_worker_base => {
+                :defaults           => {:memory_threshold => 314_572_800}, # 300.megabytes
+                :ems_refresh_worker => {
+                  :defaults                  => {:memory_threshold => "524288000"}, # 500.megabytes
+                  :ems_refresh_worker_amazon => {
+                    :memory_threshold => "1181116006.4" # 1.1.gigabtye
+                  }
+                }
+              }
+            }
+          },
+          :ems     => {:ems_amazon => {}}
+        }
+      end
+
+      let(:worker_base)  { MiqWorker.worker_settings[:memory_threshold] }
+      let(:queue_worker) { MiqQueueWorkerBase.worker_settings[:memory_threshold] }
+      let(:ems_worker)   { ManageIQ::Providers::BaseManager::RefreshWorker.worker_settings[:memory_threshold] }
+      let(:aws_worker)   { ManageIQ::Providers::Amazon::CloudManager::RefreshWorker.worker_settings[:memory_threshold] }
+
+      it "converts everyting to integers properly" do
+        expect(worker_base).to  eq(100.megabytes)
+        expect(queue_worker).to eq(300.megabytes)
+        expect(ems_worker).to   eq(500.megabytes)
+        expect(aws_worker).to   eq(1_181_116_006)
+      end
+    end
+
     it "at the base class" do
       actual = MiqWorker.worker_settings[:memory_threshold]
       expect(actual).to eq(100.megabytes)
@@ -240,17 +275,6 @@ describe MiqWorker do
 
     it ".server_scope" do
       expect(described_class.server_scope).to eq([@worker])
-    end
-
-    it ".server_scope with a different server" do
-      expect(described_class.server_scope(@server2.id)).to eq([@worker2])
-    end
-
-    it ".server_scope after already scoping on a different server" do
-      described_class.where(:miq_server_id => @server2.id).scoping do
-        expect(described_class.server_scope).to eq([@worker2])
-        expect(described_class.server_scope(@server.id)).to eq([@worker2])
-      end
     end
 
     describe "#worker_settings" do

@@ -1,3 +1,4 @@
+dist: xenial
 language: ruby
 rvm:
 - 2.4.5
@@ -15,14 +16,9 @@ env:
   - TEST_SUITE=vmdb PARALLEL=true
   - TEST_SUITE=brakeman
 matrix:
-  allow_failures:
-  - rvm: 2.5.3
-  exclude:
-  - rvm: 2.5.3
-    env: TEST_SUITE=brakeman
   fast_finish: true
 addons:
-  postgresql: '9.5'
+  postgresql: '10'
 before_install:
 - source ${TRAVIS_BUILD_DIR}/tools/ci/before_install.sh
 before_script:

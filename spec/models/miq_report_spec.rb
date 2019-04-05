@@ -754,16 +754,16 @@ describe MiqReport do
         @expected_html_rows.push(generate_html_row(true, @tenant.name, formatted_values))
 
         User.current_user = user_admin
+
+        EvmSpecHelper.local_miq_server
       end
 
       it "returns expected html outputs with formatted values" do
-        allow(User).to receive(:server_timezone).and_return("UTC")
         report.generate_table
         expect(report.build_html_rows).to match_array(@expected_html_rows)
       end
 
       it "returns only rows for tenant with any tenant_quotas" do
-        allow(User).to receive(:server_timezone).and_return("UTC")
         report.generate_table
         # 6th row would be for tenant_without_quotas, but skipped now because of skip_condition, so we expecting 5
         expect(report.table.data.count).to eq(5)
@@ -844,6 +844,27 @@ describe MiqReport do
       )
       report.cols << "name2"
       expect(report.cols).to eq(%w(name name2))
+    end
+  end
+
+  context "support for saving attributes which are not present in the model" do
+    let(:report) { FactoryBot.create(:miq_report) }
+
+    it "does not raise error when result of #export_to_array used for mass update" do
+      report_hash = report.export_to_array[0].values.first
+      expect { MiqReport.new.update_attributes(report_hash) }.not_to raise_error
+    end
+
+    describe "#userid=" do
+      it "does nothing and used only as stub for mass update" do
+        expect { report.userid = "something" }.not_to raise_error
+      end
+    end
+
+    describe "#group_description=" do
+      it "does nothing and used only as stub for mass update" do
+        expect { report.group_description = "something" }.not_to raise_error
+      end
     end
   end
 
@@ -1050,6 +1071,35 @@ describe MiqReport do
         rpt = report.generate_table(:userid => "admin")
         row = rpt[vm_name][:row]
         expect(row[label_report_column]).to eq(label_value)
+      end
+    end
+  end
+
+  describe "_async_generate_table" do
+    context "timezone" do
+      let(:time_str_utc) { "02/07/19 18:55:03 UTC" }
+      let(:time_str_hst) { "02/07/19 08:55:03 HST" }
+      let(:miq_task) { FactoryBot.create(:miq_task) }
+      let(:user) { FactoryBot.create(:user, :settings => {:display => {}}) }
+      let(:report) { FactoryBot.create(:miq_report, :db => "Vm", :cols => %w(last_sync_on)) }
+
+      before do
+        EvmSpecHelper.local_miq_server
+        FactoryBot.create(:vm_vmware, :last_sync_on => DateTime.parse(time_str_utc).utc)
+      end
+
+      it "uses 'UTC' as default time zone when generating date fileds" do
+        report._async_generate_table(miq_task.id, :userid => user.userid)
+        miq_report_result_detail = miq_task.miq_report_result.miq_report_result_details.first
+        expect(miq_report_result_detail.data).to include(time_str_utc)
+      end
+
+      it "uses time zone from user's settings if it is specified" do
+        user.settings[:display][:timezone] = "HST"
+        user.save
+        report._async_generate_table(miq_task.id, :userid => user.userid)
+        miq_report_result_detail = miq_task.miq_report_result.miq_report_result_details.first
+        expect(miq_report_result_detail.data).to include(time_str_hst)
       end
     end
   end

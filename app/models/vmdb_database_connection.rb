@@ -14,12 +14,9 @@ class VmdbDatabaseConnection < ApplicationRecord
   virtual_column :application,       :type => :string
   virtual_column :command,           :type => :string
   virtual_column :spid,              :type => :integer
-  virtual_column :task_state,        :type => :string
   virtual_column :wait_resource,     :type => :integer  # oid
   virtual_column :wait_time,         :type => :integer
-  virtual_column :vmdb_database_id,  :type => :integer
 
-  virtual_belongs_to :vmdb_database
   virtual_belongs_to :zone
   virtual_belongs_to :miq_server
   virtual_belongs_to :miq_worker
@@ -49,10 +46,6 @@ class VmdbDatabaseConnection < ApplicationRecord
     end
   end
 
-  def vmdb_database_id
-    @vmdb_database_id ||= self.class.vmdb_database.id
-  end
-
   def address
     client_addr
   end
@@ -67,10 +60,6 @@ class VmdbDatabaseConnection < ApplicationRecord
 
   def spid
     read_attribute('pid')
-  end
-
-  def task_state
-    waiting
   end
 
   def wait_time
@@ -99,24 +88,17 @@ class VmdbDatabaseConnection < ApplicationRecord
       'xact_start'              => xact_start,
       'last_request_start_time' => query_start,
       'command'                 => query,
-      'task_state'              => waiting,
       'login'                   => usename,
       'application'             => application_name,
       'request_id'              => usesysid,
       'net_address'             => client_addr,
       'host_name'               => client_hostname,
       'client_port'             => client_port,
+      'wait_event_type'         => wait_event_type,
+      'wait_event'              => wait_event,
       'wait_time_ms'            => wait_time_ms,
-      'blocked_by'              => blocked_by,
+      'blocked_by'              => blocked_by
     }
-  end
-
-  def vmdb_database
-    VmdbDatabase.find_by(:id => vmdb_database_id)
-  end
-
-  def vmdb_database=(db)
-    self.vmdb_database_id = db.id
   end
 
   def miq_worker
