@@ -213,17 +213,21 @@ class Service < ApplicationRecord
   end
 
   def all_states_match?(action)
-    return true if composite? && (power_states.uniq == map_power_states(action))
-    return true if atomic? && (power_states[0] == POWER_STATE_MAP[action])
-    false
+    if composite?
+      power_states.uniq == map_power_states(action)
+    else
+      power_states[0] == POWER_STATE_MAP[action]
+    end
   end
 
+  # @return true if this is a composite service
   def composite?
     children.present?
   end
 
+  # @return true if this is a single service (not made up of multiple services)
   def atomic?
-    children.empty?
+    !composite?
   end
 
   def orchestration_stacks
@@ -262,7 +266,9 @@ class Service < ApplicationRecord
   end
 
   def update_power_status(action)
-    options[:power_status] = "#{action}_complete"
+    expected_status = "#{action}_complete"
+    return true if options[:power_status] == expected_status
+    options[:power_status] = expected_status
     update_attributes(:options => options)
   end
 
@@ -416,22 +422,32 @@ class Service < ApplicationRecord
   end
 
   def queue_chargeback_report_generation(options = {})
+    msg = "Generating chargeback report for `#{self.class.name}` with id #{id}"
     task = MiqTask.create(
-      :name    => "Generating chargeback report with id: #{id}",
+      :name    => msg,
       :state   => MiqTask::STATE_QUEUED,
       :status  => MiqTask::STATUS_OK,
-      :message => "Queueing Chargeback of #{self.class.name} with id: #{id}"
+      :message => "Queueing: #{msg}"
     )
+
+    cb = {
+      :class_name  => task.class.to_s,
+      :instance_id => task.id,
+      :method_name => :queue_callback,
+      :args        => ["Finished"]
+    }
 
     MiqQueue.submit_job(
       :service     => "reporting",
       :class_name  => self.class.name,
       :instance_id => id,
       :task_id     => task.id,
+      :miq_task_id  => task.id,
+      :miq_callback => cb,
       :method_name => "generate_chargeback_report",
       :args        => options
     )
-    _log.info("Added to queue: generate_chargeback_report for service #{name}")
+    _log.info("Added to queue: #{msg}")
     task
   end
 

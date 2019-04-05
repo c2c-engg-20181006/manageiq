@@ -96,6 +96,7 @@
     - BinaryBlobPart
     - CustomizationSpec
     - EventLog
+    - EventStream
     - FirewallRule
     - Host
     - Job
@@ -159,9 +160,13 @@
   :capture_vm_created_on_date: false
   :ansible_tower_automation:
     :inventory_object_refresh: true
+    :allow_targeted_refresh: true
     :refresh_interval: 15.minutes
   :embedded_ansible_automation:
     :inventory_object_refresh: true
+    :allow_targeted_refresh: true
+    :inventory_collections:
+      :saver_strategy: batch
     :refresh_interval: 15.minutes
   :foreman_configuration:
     :refresh_interval: 15.minutes
@@ -926,7 +931,7 @@
   :level_scvmm: info
   :level_vcloud: info
   :level_vim: warn
-  :level_websocket: info
+  :level_remote_console: info
 :notifications:
   :history:
     :purge_window_size: 1000
@@ -1009,6 +1014,7 @@
   :custom_brand: false
   :custom_login_logo: false
   :custom_logo: false
+  :custom_favicon: false
   :events:
     :disk_usage_gt_percent: 80
   :heartbeat_timeout: 2.minutes
@@ -1026,7 +1032,7 @@
   :prefetch_stale_threshold: 30.seconds
   :rails_server: puma
   :remote_console_type: VMRC
-  :role: database_operations,event,reporting,scheduler,smartstate,ems_operations,ems_inventory,user_interface,websocket,web_services,automate
+  :role: database_operations,event,reporting,scheduler,smartstate,ems_operations,ems_inventory,user_interface,remote_console,web_services,automate
   :server_dequeue_frequency: 5.seconds
   :server_log_frequency: 5.minutes
   :server_log_timings_threshold: 1.second
@@ -1102,7 +1108,13 @@
     :purge_window_size: 1000
 :transformation:
   :limits:
+    :max_concurrent_tasks_per_ems: 10
     :max_concurrent_tasks_per_host: 10
+    :cpu_limit_per_host: unlimited
+    :network_limit_per_host: unlimited
+    :conversion_polling_interval: 15 # in seconds
+    :poll_conversion_max: 86400 # i.e. default 24 hours (15s per-interval)
+    :poll_post_stage_max: 25200 # i.e. default 7 hours (15s per-interval)
 :ui:
   :mark_translated_strings: false
   :url:
@@ -1288,7 +1300,7 @@
       :connection_pool_size: 8
       :memory_threshold: 1.gigabytes
       :nice_delta: 1
-    :websocket_worker:
+    :remote_console_worker:
       :connection_pool_size: 14
       :memory_threshold: 1.gigabytes
       :nice_delta: 1

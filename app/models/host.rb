@@ -47,6 +47,9 @@ class Host < ApplicationRecord
   has_many                  :miq_templates, :inverse_of => :host
   has_many                  :host_storages, :dependent => :destroy
   has_many                  :storages, :through => :host_storages
+  has_many                  :writable_accessible_host_storages, -> { writable_accessible }, :class_name => "HostStorage"
+  has_many                  :writable_accessible_storages, :through => :writable_accessible_host_storages, :source => :storage
+  has_many                  :host_virtual_switches, :class_name => "Switch", :dependent => :destroy, :inverse_of => :host
   has_many                  :host_switches, :dependent => :destroy
   has_many                  :switches, :through => :host_switches
   has_many                  :lans,     :through => :switches
@@ -667,8 +670,7 @@ class Host < ApplicationRecord
   # Vm relationship methods
   def direct_vms
     # Look for only the Vms at the second depth (default RP + 1)
-    rels = descendant_rels(:of_type => 'Vm').select { |r| (r.depth - depth) == 2 }
-    Relationship.resources(rels).sort_by { |r| r.name.downcase }
+    grandchildren(:of_type => 'Vm').sort_by { |r| r.name.downcase }
   end
 
   # Resource Pool relationship methods

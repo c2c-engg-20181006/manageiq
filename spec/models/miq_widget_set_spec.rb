@@ -30,13 +30,26 @@ describe MiqWidgetSet do
     end
 
     it "the belong to group is being deleted" do
-      expect { group.destroy }.to raise_error(RuntimeError, /The group has users assigned that do not belong to any other group/)
-      expect(MiqWidgetSet.count).to eq(2)
+      expect { expect { group.destroy! }.to raise_error(ActiveRecord::RecordNotDestroyed) }.to_not(change { MiqWidgetSet.count })
+      expect(group.errors[:base][0]).to eq("The group has users assigned that do not belong to any other group")
     end
 
     it "being deleted" do
       user.destroy
       expect(MiqWidgetSet.count).to eq(1)
+    end
+  end
+
+  describe ".destroy_user_versions" do
+    before do
+      FactoryBot.create(:miq_widget_set, :name => 'User_Home', :userid => user.userid)
+    end
+
+    it "destroys all user's versions of dashboards (dashboards been customized by user)" do
+      expect(MiqWidgetSet.count).to eq(2)
+      MiqWidgetSet.destroy_user_versions
+      expect(MiqWidgetSet.count).to eq(1)
+      expect(MiqWidgetSet.first).to eq(@ws_group)
     end
   end
 
@@ -113,6 +126,36 @@ describe MiqWidgetSet do
         dashboard = MiqWidgetSet.find_by(:name => dashboard_name)
         expect(dashboard.owner_id).to eq(group.id)
       end
+    end
+  end
+
+  describe ".copy_dashboard" do
+    let(:name) { "New Dashboard Name" }
+    let(:tab) { "Dashboard Tab" }
+
+    it "raises error if passed name already taken" do
+      expect { MiqWidgetSet.copy_dashboard(@ws_group, @ws_group.name, tab) }.to raise_error(ActiveRecord::RecordInvalid, "Validation failed: MiqWidgetSet: Name has already been taken")
+    end
+
+    it "raises error if passed tab name is empty" do
+      expect { MiqWidgetSet.copy_dashboard(@ws_group, name, "") }.to raise_error(ActiveRecord::RecordInvalid, "Validation failed: MiqWidgetSet: Description can't be blank")
+    end
+
+    it "raises error if group with passed id does not exist" do
+      expect { MiqWidgetSet.copy_dashboard(@ws_group, name, tab, "9999") }.to raise_error(ActiveRecord::RecordNotFound, "Couldn't find MiqGroup with 'id'=9999")
+    end
+
+    it "copy dashboard and set its owner to the group with passed group_id" do
+      another_group = FactoryBot.create(:miq_group, :description => 'some_group')
+      MiqWidgetSet.copy_dashboard(@ws_group, name, tab, another_group.id)
+      dashboard = MiqWidgetSet.find_by(:owner_id => another_group.id)
+      expect(dashboard.name).to eq(name)
+    end
+
+    it "copy dashboard and set its owner to the same group if no group_id parameter passed" do
+      expect(MiqWidgetSet.where(:owner_id => group.id).count).to eq(1)
+      dashboard = MiqWidgetSet.copy_dashboard(@ws_group, name, tab)
+      expect(MiqWidgetSet.find_by(:owner_id => group.id, :name => name)).to eq dashboard
     end
   end
 end

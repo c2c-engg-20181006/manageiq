@@ -82,16 +82,18 @@ describe Dialog do
   end
 
   context "#destroy" do
+    let(:dialog) { FactoryBot.create(:dialog) }
+
     it "destroy without resource_action association" do
-      expect(FactoryBot.create(:dialog).destroy).to be_truthy
+      expect(dialog.destroy).to be_truthy
       expect(Dialog.count).to eq(0)
     end
 
-    it "destroy with resource_action association" do
-      dialog = FactoryBot.create(:dialog)
+    it "does not destroy dialog with resource_action association" do
       FactoryBot.create(:resource_action, :action => "Provision", :dialog => dialog, :resource_type => Dialog, :resource_id => dialog.id)
-      expect { dialog.destroy }
-      .to raise_error(RuntimeError, "Dialog cannot be deleted because it is connected to other components: [\"Dialog:#{dialog.id} - #{dialog.name}\"]")
+      dialog.destroy
+      err_msg = dialog.errors.full_messages[0]
+      expect(err_msg).to eq("Dialog cannot be deleted because it is connected to other components: [\"Dialog:#{dialog.id} - #{dialog.name}\"]")
       expect(Dialog.count).to eq(1)
     end
   end
@@ -518,19 +520,39 @@ describe Dialog do
     let(:dialog_group) { DialogGroup.new(:dialog_fields => [dialog_field1]) }
     let(:dialog_field1) { DialogField.new(:value => "123", :name => "field1") }
 
-    context "when the values use the automate key name" do
-      it "initializes the fields with the given values" do
-        values = {"dialog_field1" => "field 1 new value"}
-        dialog.init_fields_with_values_for_request(values)
-        expect(dialog_field1.value).to eq("field 1 new value")
+    context "when the keys are strings" do
+      context "when the values use the automate key name" do
+        it "initializes the fields with the given values" do
+          values = {"dialog_field1" => "field 1 new value"}
+          dialog.init_fields_with_values_for_request(values)
+          expect(dialog_field1.value).to eq("field 1 new value")
+        end
+      end
+
+      context "when the values use the regular name" do
+        it "initializes the fields with the given values" do
+          values = {"field1" => "field 1 new value"}
+          dialog.init_fields_with_values_for_request(values)
+          expect(dialog_field1.value).to eq("field 1 new value")
+        end
       end
     end
 
-    context "when the values use the regular name" do
-      it "initializes the fields with the given values" do
-        values = {"field1" => "field 1 new value"}
-        dialog.init_fields_with_values_for_request(values)
-        expect(dialog_field1.value).to eq("field 1 new value")
+    context "when the keys are symbols" do
+      context "when the values use the automate key name" do
+        it "initializes the fields with the given values" do
+          values = {:dialog_field1 => "field 1 new value"}
+          dialog.init_fields_with_values_for_request(values)
+          expect(dialog_field1.value).to eq("field 1 new value")
+        end
+      end
+
+      context "when the values use the regular name" do
+        it "initializes the fields with the given values" do
+          values = {:field1 => "field 1 new value"}
+          dialog.init_fields_with_values_for_request(values)
+          expect(dialog_field1.value).to eq("field 1 new value")
+        end
       end
     end
   end

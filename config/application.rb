@@ -93,6 +93,8 @@ module Vmdb
 
     config.autoload_paths += config.eager_load_paths
 
+    config.active_support.halt_callback_chains_on_return_false = false
+
     # NOTE:  If you are going to make changes to autoload_paths, please make
     # sure they are all strings.  Rails will push these paths into the
     # $LOAD_PATH.
@@ -114,6 +116,10 @@ module Vmdb
     require_relative '../lib/request_started_on_middleware'
     config.middleware.use RequestStartedOnMiddleware
 
+    # enable to log session id for every request
+    # require_relative '../lib/request_log_session_middleware'
+    # config.middleware.use RequestLogSessionMiddleware
+
     # config.eager_load_paths accepts an array of paths from which Rails will eager load on boot if cache classes is enabled.
     # Defaults to every folder in the app directory of the application.
 
@@ -132,8 +138,8 @@ module Vmdb
       require_relative 'environments/patches/database_configuration'
 
       # To evaluate settings or database.yml with encrypted passwords
-      require 'miq-password'
-      MiqPassword.key_root = Rails.root.join("certs")
+      require 'manageiq-password'
+      ManageIQ::Password.key_root = Rails.root.join("certs")
 
       require 'vmdb_helper'
     end
@@ -161,7 +167,7 @@ module Vmdb
     config.after_initialize do
       Vmdb::Initializer.init
       ActiveRecord::Base.connection_pool.release_connection
-      puts "** #{Vmdb::Appliance.BANNER}"
+      puts "** #{Vmdb::Appliance.BANNER}" unless Rails.env.production?
     end
 
     console do
@@ -178,6 +184,12 @@ module Vmdb
       # since the railtie for it is loaded first and will include
       # `Rails::ConsoleMethods` before we have a chance to modify them here.
       TOPLEVEL_BINDING.eval('self').extend(Vmdb::ConsoleMethods)
+
+      # In test mode automatically load the spec helper which will, among other
+      # things, find the factory definitions and load factory related methods.
+      if Rails.env.test?
+        require_relative '../spec/spec_helper'
+      end
     end
   end
 end

@@ -253,12 +253,12 @@ module RetirementMixin
   end
 
   def system_context_requester
-    if try(:evm_owner_id).present?
-      User.find(evm_owner_id)
-    else
-      $log.info("System context defaulting to admin user because owner of #{name} not set.")
-      User.super_admin
+    if evm_owner.blank?
+      $log.info("System context defaulting to admin user because owner of #{name} (#{self.class}) not set or owner no longer found in database.")
+      return User.super_admin
     end
+    $log.info("Setting retirement requester of #{name} to #{evm_owner_id}.")
+    evm_owner
   end
 
   def current_user
@@ -266,10 +266,10 @@ module RetirementMixin
   end
 
   def q_user_info(q_options, requester)
-    if requester.present?
-      if requester.kind_of?(String)
-        requester = User.find_by(:userid => requester)
-      end
+    if requester && requester.kind_of?(String)
+      requester = User.find_by(:userid => requester)
+    end
+    if requester
       q_options[:user_id] = requester.id
       if requester.current_group.present? && requester.current_tenant.present?
         q_options[:group_id] = requester.current_group.id

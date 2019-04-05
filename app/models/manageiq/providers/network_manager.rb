@@ -1,6 +1,9 @@
 module ManageIQ::Providers
   class NetworkManager < BaseManager
     include SupportsFeatureMixin
+
+    PROVIDER_NAME = "Network Manager".freeze
+
     class << model_name
       define_method(:route_key) { "ems_networks" }
       define_method(:singular_route_key) { "ems_network" }
@@ -71,6 +74,10 @@ module ManageIQ::Providers
              :resource_groups,
              :vms,
              :total_vms,
+             :vms_and_templates,
+             :total_vms_and_templates,
+             :miq_templates,
+             :total_miq_templates,
              :hosts,
              :to        => :parent_manager,
              :allow_nil => true
@@ -84,7 +91,12 @@ module ManageIQ::Providers
     end
 
     def name
-      "#{parent_manager.try(:name)} Network Manager"
+      "#{parent_manager.try(:name)} #{PROVIDER_NAME}"
+    end
+
+    def self.find_object_for_belongs_to_filter(name)
+      name.gsub!(" #{self::PROVIDER_NAME}", "")
+      includes(:parent_manager).find_by(:parent_managers_ext_management_systems => {:name => name})
     end
   end
 

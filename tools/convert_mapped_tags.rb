@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 require File.expand_path('../config/environment', __dir__)
 
-require 'trollop'
+require 'optimist'
 
-options = Trollop.options(ARGV) do
+options = Optimist.options(ARGV) do
   banner "USAGE:  #{__FILE__} -c|--commit\n" \
          "Example (Commit):  #{__FILE__} --commit\n" \
          "Example (Dry Run): #{__FILE__}         \n" \
@@ -29,7 +29,7 @@ ActiveRecord::Base.transaction do
   tag_values = ContainerLabelTagMapping::TAG_PREFIXES.map { |x| "#{x}%:%" }
 
   Classification.where.not(:id => Classification.region_to_range) # only other regions(not current, we expected that current region is global)
-                .where(:classifications => {:parent_id => 0}) # only categories
+                .is_category
                 .includes(:tag, :children).references(:tag, :children)
                 .where(condition_for_mapped_tags, *tag_values) # only mapped categories
                 .find_each do |category|
@@ -70,4 +70,4 @@ end
 
 puts
 
-Trollop.educate if !options[:help] && !options[:commit] # display help message only in Dry Run
+Optimist.educate if !options[:help] && !options[:commit] # display help message only in Dry Run

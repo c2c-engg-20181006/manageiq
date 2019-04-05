@@ -192,7 +192,7 @@ describe Classification do
        'My_Name_is...',
        '123456789_123456789_123456789_123456789_123456789_1'
       ].each do |name|
-        cat = Classification.new(:name => name, :parent_id => 0)
+        cat = Classification.is_category.new(:name => name)
 
         expect(cat).to_not be_valid
         expect(cat.errors[:name].size).to eq(1)
@@ -206,7 +206,7 @@ describe Classification do
        '123456789_123456789_123456789_123456789_123456789_1'
       ].each do |name|
         good_name = Classification.sanitize_name(name)
-        cat = Classification.new(:name => good_name, :description => name, :parent_id => 0)
+        cat = Classification.is_category.new(:name => good_name, :description => name)
         expect(cat).to be_valid
       end
     end
@@ -560,6 +560,49 @@ describe Classification do
 
     it "creates tag with name, ns and parent" do
       expect(Classification.name2tag("test_entry", parent, root_ns)).to eq(entry_ns)
+    end
+  end
+
+  describe '.create_category!' do
+    it "is a category" do
+      c1 = Classification.create_category!(:name => 'a', :description => 'a')
+
+      expect(c1).to be_category
+    end
+  end
+
+  describe '#save' do
+    let(:new_name) { "new_tag_name" }
+    let(:category) { FactoryBot.create(:classification, :name => "category") }
+
+    context "editing existing classification" do
+      let(:classification) { FactoryBot.create(:classification_tag, :parent => category, :name => "some_tag_name") }
+      it "doesn't assign new tag " do
+        tag = classification.tag
+        classification.update_attributes!(:name => new_name)
+        classification.reload
+        expect(tag.id).to eq classification.tag.id
+        expect(classification.name).to eq(new_name)
+        expect(classification.tag.name).to eq(Classification.name2tag(new_name, category))
+      end
+    end
+
+    context "saving new classification" do
+      it "creates new tag" do
+        classification = Classification.create(:description => new_name, :parent => category, :name => new_name)
+        expect(classification.tag).to be_present
+        expect(classification.name).to eq(new_name)
+        expect(classification.tag.name).to eq(Classification.name2tag(new_name, category))
+      end
+    end
+  end
+
+  describe '.create' do
+    it "assigns proper tags" do
+      FactoryBot.create(:classification_department_with_tags)
+      Tag.all.each do |tag|
+        expect(tag.name).to eq(Classification.name2tag(tag.classification.name, tag.classification.parent_id))
+      end
     end
   end
 

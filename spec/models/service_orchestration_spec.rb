@@ -9,8 +9,8 @@ describe ServiceOrchestration do
 
   let(:service_template) do
     FactoryBot.create(:service_template_orchestration,
-                       :orchestration_manager  => manager_in_st,
-                       :orchestration_template => template_in_st)
+                      :orchestration_manager  => manager_in_st,
+                      :orchestration_template => template_in_st)
   end
 
   let(:dialog_options) do
@@ -21,17 +21,18 @@ describe ServiceOrchestration do
       'dialog_stack_onfailure'                => 'ROLLBACK',
       'dialog_stack_timeout'                  => '30',
       'dialog_param_InstanceType'             => 'cg1.4xlarge',
-      'password::dialog_param_DBRootPassword' => 'v2:{c2XR8/Yl1CS0phoOVMNU9w==}'
+      'password::dialog_param_DBRootPassword' => 'v2:{c2XR8/Yl1CS0phoOVMNU9w==}',
+      :dialog_param_key_in_symbol             => 'not_expected'
     }
   end
 
   let(:service) do
     FactoryBot.create(:service_orchestration,
-                       :service_template       => service_template,
-                       :orchestration_manager  => manager_in_st,
-                       :orchestration_template => template_in_st,
-                       :evm_owner              => FactoryBot.create(:user),
-                       :miq_group              => FactoryBot.create(:miq_group))
+                      :service_template       => service_template,
+                      :orchestration_manager  => manager_in_st,
+                      :orchestration_template => template_in_st,
+                      :evm_owner              => FactoryBot.create(:user),
+                      :miq_group              => FactoryBot.create(:miq_group))
   end
 
   let(:service_with_dialog_options) do
@@ -52,6 +53,17 @@ describe ServiceOrchestration do
     it "gets stack name from overridden value" do
       service_with_dialog_options.stack_name = "new_name"
       expect(service_with_dialog_options.stack_name).to eq("new_name")
+    end
+  end
+
+  describe "#add_resource" do
+    it "doesn't allow service to be added" do
+      expect { service_with_dialog_options.add_resource(FactoryBot.create(:service), {}) }.to raise_error(/Service Orchestration subclass does not support add_resource for/)
+    end
+
+    it "allows stack to be added" do
+      service_with_dialog_options.add_resource(FactoryBot.create(:orchestration_stack))
+      expect(service_with_dialog_options.service_resources.pluck(:resource_type)).to include("OrchestrationStack", "OrchestrationTemplate")
     end
   end
 
@@ -87,11 +99,20 @@ describe ServiceOrchestration do
   describe "#stack_options" do
     before do
       allow_any_instance_of(ManageIQ::Providers::Amazon::CloudManager::OrchestrationServiceOptionConverter).to(
-        receive(:stack_create_options).and_return(dialog_options))
+        receive(:stack_create_options).and_return(dialog_options)
+      )
     end
 
     it "gets stack options set by dialog" do
       expect(service_with_dialog_options.stack_options).to eq(dialog_options)
+    end
+
+    it "can access options key as string" do
+      expect(service_with_dialog_options.stack_options["dialog_stack_name"]).to eq('test123')
+    end
+
+    it "can access options key as symbol" do
+      expect(service_with_dialog_options.stack_options[:dialog_param_key_in_symbol]).to eq('not_expected')
     end
 
     context "cloud tenant option" do
@@ -120,7 +141,7 @@ describe ServiceOrchestration do
     it "encrypts password when saves to DB" do
       new_options = {:parameters => {"my_password" => "secret"}}
       service_with_dialog_options.stack_options = new_options
-      expect(service_with_dialog_options.options[:create_options][:parameters]["my_password"]).to eq(MiqPassword.encrypt("secret"))
+      expect(service_with_dialog_options.options[:create_options][:parameters]["my_password"]).to eq(ManageIQ::Password.encrypt("secret"))
     end
 
     context "overwrite selections for orchestration manager and template" do
@@ -157,76 +178,94 @@ describe ServiceOrchestration do
   end
 
   describe '#deploy_orchestration_stack' do
-    it 'creates a stack through cloud manager' do
-      allow(ManageIQ::Providers::Amazon::CloudManager::OrchestrationStack).to receive(:raw_create_stack) do |manager, name, template, opts|
-        expect(manager).to eq(manager_by_dialog)
-        expect(name).to eq('test123')
-        expect(template).to be_kind_of OrchestrationTemplate
-        expect(opts).to be_kind_of Hash
-      end
-
+    it 'calls OrchestrationTemplateRunner' do
+      job = double(:job, :id => 1, :orchestration_stack => FactoryBot.create(:orchestration_stack))
+      allow(job).to receive(:signal).with(:start)
+      allow(service_with_dialog_options).to receive(:wait_on_orchestration_stack)
+      allow(ManageIQ::Providers::CloudManager::OrchestrationTemplateRunner).to receive(:create_job) do |options|
+        expect(options).to include(
+          :orchestration_manager_id  => manager_by_dialog.id,
+          :stack_name                => service_with_dialog_options.stack_name,
+          :orchestration_template_id => template_by_dialog.id,
+          :zone                      => service_with_dialog_options.my_zone
+        )
+        expect(options[:create_options]).to include(
+          :parameters         => {
+            "InstanceType"   => "cg1.4xlarge",
+            "DBRootPassword" => "admin",
+            "key_in_symbol"  => "not_expected"
+          },
+          :on_failure         => "ROLLBACK",
+          :timeout_in_minutes => 30
+        )
+      end.and_return(job)
       service_with_dialog_options.deploy_orchestration_stack
-    end
-
-    it 'always saves options even when the manager fails to create a stack' do
-      provision_error = MiqException::MiqOrchestrationProvisionError
-      allow_any_instance_of(ManageIQ::Providers::Amazon::CloudManager).to receive(:stack_create).and_raise(provision_error, 'test failure')
-
-      expect(service_with_dialog_options).to receive(:save_create_options)
-      expect { service_with_dialog_options.deploy_orchestration_stack }.to raise_error(provision_error)
     end
   end
 
   describe '#update_orchestration_stack' do
     let(:reconfigurable_service) do
-      stack = FactoryBot.create(:orchestration_stack)
+      @stack = FactoryBot.create(:orchestration_stack)
       service_template = FactoryBot.create(:service_template_orchestration)
       service_template.orchestration_template = template_by_setter
 
       service.service_template = service_template
       service.orchestration_manager = manager_by_setter
-      service.add_resource(stack)
+      service.add_resource(@stack)
       service.update_options = service.build_stack_options_from_dialog(dialog_options)
       service
     end
 
-    it 'updates a stack through cloud manager' do
-      allow_any_instance_of(OrchestrationStack).to receive(:raw_update_stack) do |_instance, new_template, opts|
-        expect(opts[:parameters]).to include(
+    it 'calls OrchestrationTemplateRunner' do
+      job = FactoryBot.create(:job)
+      allow(job).to receive(:signal).with(:update)
+      allow(ManageIQ::Providers::CloudManager::OrchestrationTemplateRunner).to receive(:create_job) do |options|
+        expect(options[:update_options][:parameters]).to include(
           'InstanceType'   => 'cg1.4xlarge',
-          'DBRootPassword' => 'admin'
+          'DBRootPassword' => 'admin',
+          'key_in_symbol'  => 'not_expected'
         )
-        expect(new_template).to eq(template_by_setter)
-      end
+        expect(options).to include(
+          :orchestration_stack_id    => @stack.id,
+          :orchestration_template_id => template_by_setter.id,
+          :zone                      => reconfigurable_service.my_zone
+        )
+      end.and_return(job)
       reconfigurable_service.update_orchestration_stack
-    end
-
-    it 'saves update options and encrypts password' do
-      expect(reconfigurable_service.options[:update_options][:parameters]['DBRootPassword']).to eq(MiqPassword.encrypt("admin"))
     end
   end
 
   describe '#orchestration_stack_status' do
-    it 'returns an error if stack has never been deployed' do
+    it 'returns an error if stack runner job has never been created' do
       status, _message = service.orchestration_stack_status
-      expect(status).to eq('check_status_failed')
+      expect(status).to eq('deploy_failed')
     end
 
-    it 'returns current stack status through provider' do
-      status_obj = ManageIQ::Providers::Amazon::CloudManager::OrchestrationStack::Status.new('CREATE_COMPLETE', 'no error')
-      allow(deployed_stack).to receive(:raw_status).and_return(status_obj)
+    it 'return an error if stack runner finishes with an error' do
+      stack_job = double(:state => 'finished', :status => 'error', :message => 'deploy error')
+      allow(service_with_deployed_stack).to receive(:orchestration_runner_job).and_return(stack_job)
+
+      status, message = service_with_deployed_stack.orchestration_stack_status
+      expect(status).to eq('deploy_failed')
+      expect(message).to eq('deploy error')
+    end
+
+    it 'returns current stack status through stack runner' do
+      stack_job = double(:orchestration_stack_status => 'create_complete', :orchestration_stack_message => 'no error', :state => 'finished', :status => 'ok')
+      allow(service_with_deployed_stack).to receive(:orchestration_runner_job).and_return(stack_job)
 
       status, message = service_with_deployed_stack.orchestration_stack_status
       expect(status).to eq('create_complete')
       expect(message).to eq('no error')
     end
 
-    it 'returns an error message when the provider fails to retrieve the status' do
-      allow(deployed_stack).to receive(:raw_status).and_raise(MiqException::MiqOrchestrationStatusError, 'test failure')
+    it "returns deploy_active when stack status not set in stack job's options" do
+      stack_job = double(:state => 'active', :status => 'ok', :orchestration_stack_status => nil)
+      allow(service_with_deployed_stack).to receive(:orchestration_runner_job).and_return(stack_job)
 
       status, message = service_with_deployed_stack.orchestration_stack_status
-      expect(status).to eq('check_status_failed')
-      expect(message).to eq('test failure')
+      expect(status).to eq('deploy_active')
+      expect(message).to eq('waiting for the orchestration stack status')
     end
   end
 
@@ -255,10 +294,12 @@ describe ServiceOrchestration do
 
   describe '#post_provision_configure' do
     before do
-      allow(ManageIQ::Providers::Amazon::CloudManager::OrchestrationStack).to receive(
-        :raw_create_stack).and_return("ems_ref")
-      @resulting_stack = service.deploy_orchestration_stack
-
+      allow(ManageIQ::Providers::Amazon::CloudManager::OrchestrationStack).to receive(:raw_create_stack).and_return("ems_ref")
+      @resulting_stack = ManageIQ::Providers::CloudManager::OrchestrationStack.create_stack(
+        service.orchestration_manager, service.stack_name, service.orchestration_template, service.stack_options
+      )
+      service.update_attributes(:options => service.options.merge!(:orchestration_stack => @resulting_stack.attributes.compact.except(:id)))
+      allow(service).to receive(:orchestration_stack).and_return(@resulting_stack)
       service.miq_request_task = FactoryBot.create(:service_template_provision_task)
     end
 

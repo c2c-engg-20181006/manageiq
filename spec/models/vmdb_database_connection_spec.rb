@@ -100,19 +100,16 @@ describe VmdbDatabaseConnection do
     :blocked_by,
     :command,
     :spid,
-    :task_state,
     :wait_resource,
     :wait_time,
-    :vmdb_database_id,
-    :vmdb_database,
     :zone,
     :miq_server,
     :miq_worker,
-    :pid,
+    :pid
   ].each do |field|
     it "has a #{field}" do
-      setting = VmdbDatabaseConnection.all.first
-      expect(setting).to respond_to(field)
+      connection = VmdbDatabaseConnection.first
+      expect { connection.public_send(field) }.not_to raise_error
     end
   end
 
@@ -137,13 +134,14 @@ describe VmdbDatabaseConnection do
         xact_start
         last_request_start_time
         command
-        task_state
         login
         application
         request_id
         net_address
         host_name
         client_port
+        wait_event_type
+        wait_event
         wait_time_ms
         blocked_by
       )

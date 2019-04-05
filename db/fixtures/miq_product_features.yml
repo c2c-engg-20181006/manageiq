@@ -464,10 +464,6 @@
     :feature_type: control
     :identifier: ems_cloud_control
     :children:
-    - :name: Discover
-      :description: Discover Cloud Providers
-      :feature_type: control
-      :identifier: ems_cloud_discover
     - :name: Edit Tags
       :description: Edit Tags of Cloud Providers
       :feature_type: control
@@ -3809,30 +3805,6 @@
       :description: Open External Logging from Container Provider
       :feature_type: control
       :identifier: ems_container_launch_external_logging
-    - :name: Container Deployments
-      :description: Container Deployments
-      :feature_type: node
-      :identifier: container_deployment
-      :hidden: true
-      :children:
-      - :name: View
-        :description: View Container Deployments
-        :feature_type: view
-        :identifier: container_deployment_view
-        :children:
-        - :name: Container Deployment Show
-          :description: Container Deployment Show
-          :feature_type: view
-          :identifier: container_deployment_show
-      - :name: Operate
-        :description: Perform Operations on Container Deployment
-        :feature_type: control
-        :identifier: container_deployment_control
-        :children:
-        - :name: Container Deployment Create
-          :description: Container Deployment Create
-          :feature_type: control
-          :identifier: container_deployment_create
   - :name: Modify
     :description: Modify Containers Providers
     :feature_type: admin
@@ -4785,6 +4757,14 @@
         :description: Edit a Provider
         :feature_type: admin
         :identifier: provider_foreman_edit_provider
+      - :name: Pause
+        :description: Pause a Provider
+        :feature_type: admin
+        :identifier: provider_foreman_pause
+      - :name: Resume
+        :description: Resume a Provider
+        :feature_type: admin
+        :identifier: provider_foreman_resume
       - :name: Add Provider
         :description: Add a Provider
         :feature_type: admin
@@ -4981,6 +4961,14 @@
         :description: Edit a Provider
         :feature_type: admin
         :identifier: automation_manager_edit_provider
+      - :name: Pause
+        :description: Pause a Provider
+        :feature_type: admin
+        :identifier: automation_manager_pause
+      - :name: Resume
+        :description: Resume a Provider
+        :feature_type: admin
+        :identifier: automation_manager_resume
       - :name: Add Provider
         :description: Add a Provider
         :feature_type: admin

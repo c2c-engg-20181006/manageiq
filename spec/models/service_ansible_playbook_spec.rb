@@ -9,8 +9,8 @@ describe(ServiceAnsiblePlaybook) do
   let(:credential_2)   { FactoryBot.create(:embedded_ansible_credential, :manager_ref => '3') }
   let(:credential_3)   { FactoryBot.create(:embedded_ansible_credential, :manager_ref => '4') }
   let(:decrpyted_val)  { 'my secret' }
-  let(:encrypted_val)  { MiqPassword.encrypt(decrpyted_val) }
-  let(:encrypted_val2) { MiqPassword.encrypt(decrpyted_val + "new") }
+  let(:encrypted_val)  { ManageIQ::Password.encrypt(decrpyted_val) }
+  let(:encrypted_val2) { ManageIQ::Password.encrypt(decrpyted_val + "new") }
 
   let(:loaded_service) do
     service_template = FactoryBot.create(:service_template_ansible_playbook)
@@ -76,6 +76,42 @@ describe(ServiceAnsiblePlaybook) do
         :extra_vars => {'var1' => 'value1', 'var2' => 'value2', 'pswd' => encrypted_val}
       }
     }
+  end
+
+  shared_examples_for "#retain_resources_on_retirement" do
+    it "has config_info retirement options" do
+      service_options = service.options
+      service_options[:config_info][:retirement] = service_options[:config_info][:provision]
+      service_options[:config_info][:retirement][:remove_resources] = remove_resources
+      service.update_attributes(:options => service_options)
+      expect(service.retain_resources_on_retirement?).to eq(!can_children_be_retired?)
+    end
+  end
+
+  describe '#retain_resources_on_retirement?' do
+    context "no_with_playbook returns true" do
+      let(:remove_resources) { 'no_with_playbook' }
+      let(:can_children_be_retired?) { false }
+      it_behaves_like "#retain_resources_on_retirement"
+    end
+
+    context "no_without_playbook returns true" do
+      let(:remove_resources) { 'no_without_playbook' }
+      let(:can_children_be_retired?) { false }
+      it_behaves_like "#retain_resources_on_retirement"
+    end
+
+    context "yes_with_playbook returns false" do
+      let(:remove_resources) { 'yes_with_playbook' }
+      let(:can_children_be_retired?) { true }
+      it_behaves_like "#retain_resources_on_retirement"
+    end
+
+    context "yes_without_playbook returns false" do
+      let(:remove_resources) { 'yes_without_playbook' }
+      let(:can_children_be_retired?) { true }
+      it_behaves_like "#retain_resources_on_retirement"
+    end
   end
 
   describe '#preprocess' do

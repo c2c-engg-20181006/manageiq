@@ -1,4 +1,6 @@
 describe ServiceTemplateTransformationPlanTask do
+  let(:infra_conversion_job) { FactoryBot.create(:infra_conversion_job) }
+
   describe '.base_model' do
     it { expect(described_class.base_model).to eq(ServiceTemplateTransformationPlanTask) }
   end
@@ -19,7 +21,7 @@ describe ServiceTemplateTransformationPlanTask do
     let(:vm)  { FactoryBot.create(:vm_or_template) }
     let(:vm2)  { FactoryBot.create(:vm_or_template) }
     let(:apst) { FactoryBot.create(:service_template_ansible_playbook) }
-    let(:conversion_host) { FactoryBot.create(:conversion_host, :resource => host) }
+    let(:conversion_host) { FactoryBot.create(:conversion_host, :skip_validate, :resource => host) }
 
     let(:mapping) do
       FactoryBot.create(
@@ -118,6 +120,11 @@ describe ServiceTemplateTransformationPlanTask do
           end
         end
 
+        it 'raises when log type is invalid' do
+          msg = "Transformation log type 'invalid' not supported"
+          expect { task.transformation_log_queue('user', 'invalid') }.to raise_error(msg)
+        end
+
         it 'gets the transformation log from conversion host' do
           expect(task).to receive(:transformation_log).and_return('transformation migration log content')
           taskid = task.transformation_log_queue('user')
@@ -142,7 +149,7 @@ describe ServiceTemplateTransformationPlanTask do
         it 'returns an error message' do
           taskid = task.transformation_log_queue('user')
           expect(MiqTask.find(taskid)).to have_attributes(
-            :message => "Conversion host was not found. Cannot queue the download of transformation log.",
+            :message => "Conversion host was not found. Cannot queue the download of v2v log.",
             :status  => 'Error'
           )
         end
@@ -158,13 +165,13 @@ describe ServiceTemplateTransformationPlanTask do
 
       it 'requires transformation log location in options' do
         task.options.store_path(:virtv2v_wrapper, "v2v_log", "")
-        expect { task.transformation_log }.to raise_error(MiqException::Error)
+        expect { task.transformation_log("v2v") }.to raise_error(MiqException::Error)
       end
 
       it 'gets the transformation log content' do
         msg = 'my transformation migration log'
         allow(conversion_host).to receive(:get_conversion_log).with(task.options[:virtv2v_wrapper]['v2v_log']).and_return(msg)
-        expect(task.transformation_log).to eq(msg)
+        expect(task.transformation_log("v2v")).to eq(msg)
       end
     end
 
@@ -177,6 +184,9 @@ describe ServiceTemplateTransformationPlanTask do
 
     describe '#cancel' do
       it 'catches cancel state' do
+        task.options[:infra_conversion_job_id] = infra_conversion_job.id
+        expect(task).to receive(:infra_conversion_job).and_return(infra_conversion_job)
+        expect(infra_conversion_job).to receive(:cancel)
         task.cancel
         expect(task.cancelation_status).to eq(MiqRequestTask::CANCEL_STATUS_REQUESTED)
         expect(task.cancel_requested?).to be_truthy
@@ -185,23 +195,45 @@ describe ServiceTemplateTransformationPlanTask do
 
     describe '#kill_virtv2v' do
       before do
+        task.options = {
+          :virtv2v_wrapper    => { 'state_file' => '/tmp/v2v.state', 'pid' => '1234' },
+          :virtv2v_started_on => 1
+        }
         task.conversion_host = conversion_host
-        task.options = { :virtv2v_wrapper => {}}
+        allow(conversion_host).to receive(:get_conversion_state).with(task.options[:virtv2v_wrapper]['state_file']).and_return({})
       end
 
-      it "does nothing if pid not present in options[:virtv2v_wrapper]" do
+      it "returns false if not started" do
+        task.options[:virtv2v_started_on] = nil
+        expect(conversion_host).not_to receive(:kill_process)
+        expect(task.kill_virtv2v('KILL')).to eq(false)
+      end
+
+      it "returns false if finished" do
+        task.options[:virtv2v_finished_on] = 1
+        expect(conversion_host).not_to receive(:kill_process)
+        expect(task.kill_virtv2v('KILL')).to eq(false)
+      end
+
+      it "returns false if virtv2v_wrapper is absent" do
+        task.options[:virtv2v_wrapper] = nil
+        expect(conversion_host).not_to receive(:kill_process)
+        expect(task.kill_virtv2v('KILL')).to eq(false)
+      end
+
+      it "returns false if virtv2v_wrapper.pid is absent" do
+        task.options[:virtv2v_wrapper]['pid'] = nil
+        expect(conversion_host).not_to receive(:kill_process)
         expect(task.kill_virtv2v('KILL')).to eq(false)
       end
 
       it "returns false if if kill command failed" do
-        task.options[:virtv2v_wrapper]['pid'] = '1234'
-        allow(conversion_host).to receive(:kill_process).with('1234', 'KILL').and_return(false)
+        expect(conversion_host).to receive(:kill_process).with('1234', 'KILL').and_return(false)
         expect(task.kill_virtv2v('KILL')).to eq(false)
       end
 
       it "returns true if if kill command succeeded" do
-        task.options[:virtv2v_wrapper]['pid'] = '1234'
-        allow(conversion_host).to receive(:kill_process).with('1234', 'KILL').and_return(true)
+        expect(conversion_host).to receive(:kill_process).with('1234', 'KILL').and_return(true)
         expect(task.kill_virtv2v('KILL')).to eq(true)
       end
     end
@@ -250,6 +282,12 @@ describe ServiceTemplateTransformationPlanTask do
 
     let(:conversion_host) { FactoryBot.create(:conversion_host, :resource => src_vm_1) }
 
+    describe "#valid_states" do
+      it "contains 'migrate'" do
+        expect(task_1.send(:valid_states)).to include('migrate')
+      end
+    end
+
     describe '#transformation_destination' do
       it { expect(task_1.transformation_destination(src_cluster)).to eq(dst_cluster) }
     end
@@ -294,7 +332,7 @@ describe ServiceTemplateTransformationPlanTask do
     context 'source is vmwarews' do
       let(:src_ems) { FactoryBot.create(:ems_vmware, :zone => FactoryBot.create(:zone)) }
       let(:src_host) { FactoryBot.create(:host, :ext_management_system => src_ems, :ipaddress => '10.0.0.1') }
-      let(:src_storage) { FactoryBot.create(:storage, :ext_management_system => src_ems) }
+      let(:src_storage) { FactoryBot.create(:storage, :ext_management_system => src_ems, :name => 'stockage récent') }
 
       let(:src_lan_1) { FactoryBot.create(:lan) }
       let(:src_lan_2) { FactoryBot.create(:lan) }
@@ -306,10 +344,11 @@ describe ServiceTemplateTransformationPlanTask do
 
       let(:src_hardware) { FactoryBot.create(:hardware, :nics => [src_nic_1, src_nic_2]) }
 
-      let(:src_vm_1) { FactoryBot.create(:vm_vmware, :ext_management_system => src_ems, :ems_cluster => src_cluster, :host => src_host, :hardware => src_hardware) }
-      let(:src_vm_2) { FactoryBot.create(:vm_vmware, :ext_management_system => src_ems, :ems_cluster => src_cluster, :host => src_host) }
+      let(:src_vm_1) { FactoryBot.create(:vm_openstack, :ext_management_system => src_ems, :ems_cluster => src_cluster, :host => src_host, :hardware => src_hardware) }
+      let(:src_vm_2) { FactoryBot.create(:vm_openstack, :ext_management_system => src_ems, :ems_cluster => src_cluster, :host => src_host) }
 
-      let(:src_network) { FactoryBot.create(:network, :ipaddress => '10.0.0.1') }
+      let(:src_network_1) { FactoryBot.create(:network, :ipaddress => '10.0.1.1') }
+      let(:src_network_2) { FactoryBot.create(:network, :ipaddress => nil) }
 
       # Disks have to be stubbed because there's no factory for Disk class
       before do
@@ -317,11 +356,13 @@ describe ServiceTemplateTransformationPlanTask do
         allow(src_disk_1).to receive(:storage).and_return(src_storage)
         allow(src_disk_2).to receive(:storage).and_return(src_storage)
         allow(src_vm_1).to receive(:allocated_disk_storage).and_return(34_359_738_368)
-        allow(src_nic_1).to receive(:network).and_return(src_network)
+        allow(src_nic_1).to receive(:network).and_return(src_network_1)
+        allow(src_nic_2).to receive(:network).and_return(src_network_2)
         allow(src_host).to receive(:thumbprint_sha1).and_return('01:23:45:67:89:ab:cd:ef:01:23:45:67:89:ab:cd:ef:01:23:45:67')
         allow(src_host).to receive(:authentication_userid).and_return('esx_user')
         allow(src_host).to receive(:authentication_password).and_return('esx_passwd')
         task_1.options[:transformation_host_id] = conversion_host.id
+        allow(task_1).to receive(:with_lock).and_yield
       end
 
       it "fails when cluster is not mapped" do
@@ -346,21 +387,26 @@ describe ServiceTemplateTransformationPlanTask do
         it "raises when conversion is failed" do
           allow(conversion_host).to receive(:get_conversion_state).with(task.options[:virtv2v_wrapper]['state_file']).and_return(
             {
-              "failed"      => true,
-              "finished"    => true,
-              "started"     => true,
-              "disks"       => [
+              "failed"       => true,
+              "finished"     => true,
+              "started"      => true,
+              "disks"        => [
                 { "path" => src_disk_1.filename, "progress" => 23.0 },
                 { "path" => src_disk_1.filename, "progress" => 0.0 }
               ],
-              "pid"         => 5855,
-              "return_code" => 1,
-              "disk_count"  => 2
+              "pid"          => 5855,
+              "return_code"  => 1,
+              "disk_count"   => 2,
+              "last_message" => {
+                "message" => "virt-v2v failed somehow",
+                "type"    => "error"
+              }
             }
           )
           expect { task_1.get_conversion_state }.to raise_error("Disks transformation failed.")
           expect(task_1.options[:virtv2v_status]).to eq('failed')
-          epxect(task_1.options[:virtv2v_finished_on]).to eq(time_now.strftime('%Y-%m-%d %H:%M:%S'))
+          expect(task_1.options[:virtv2v_finished_on]).to eq(time_now.strftime('%Y-%m-%d %H:%M:%S'))
+          expect(task_1.options[:virtv2v_message]).to eq('virt-v2v failed somehow')
         end
 
         it "updates disks progress" do
@@ -408,6 +454,7 @@ describe ServiceTemplateTransformationPlanTask do
           )
           expect(task_1.options[:virtv2v_status]).to eq('finished')
           epxect(task_1.options[:virtv2v_finished_on]).to eq(time)
+          expect(task_1.options[:virtv2v_message]).to be_nil
         end
       end
 
@@ -423,11 +470,11 @@ describe ServiceTemplateTransformationPlanTask do
       end
 
       context 'destination is rhevm' do
-        let(:dst_ems) { FactoryBot.create(:ems_redhat, :zone => FactoryBot.create(:zone)) }
+        let(:dst_ems) { FactoryBot.create(:ems_redhat, :zone => FactoryBot.create(:zone), :api_version => '4.2.4') }
         let(:dst_storage) { FactoryBot.create(:storage) }
         let(:dst_lan_1) { FactoryBot.create(:lan) }
         let(:dst_lan_2) { FactoryBot.create(:lan) }
-        let(:conversion_host) { FactoryBot.create(:conversion_host, :resource => FactoryBot.create(:host, :ext_management_system => dst_ems)) }
+        let(:conversion_host) { FactoryBot.create(:conversion_host, :resource => FactoryBot.create(:host_redhat, :ext_management_system => dst_ems)) }
 
         let(:mapping) do
           FactoryBot.create(
@@ -449,13 +496,20 @@ describe ServiceTemplateTransformationPlanTask do
 
         it_behaves_like "#virtv2v_disks"
 
-        it "checks network mappings and generates network_mappings hash" do
-          expect(task_1.network_mappings).to eq(
-            [
-              { :source => src_lan_1.name, :destination => dst_lan_1.name, :mac_address => src_nic_1.address, :ip_address => '10.0.0.1' },
-              { :source => src_lan_2.name, :destination => dst_lan_2.name, :mac_address => src_nic_2.address, :ip_address => nil }
-            ]
-          )
+        context "#network_mappings" do
+          it "generates network_mappings hash" do
+            expect(task_1.network_mappings).to eq(
+              [
+                { :source => src_lan_1.name, :destination => dst_lan_1.name, :mac_address => src_nic_1.address, :ip_address => '10.0.1.1' },
+                { :source => src_lan_2.name, :destination => dst_lan_2.name, :mac_address => src_nic_2.address }
+              ]
+            )
+          end
+        end
+
+        it "passes preflight check regardless of power_state" do
+          src_vm_1.send(:power_state=, 'anything')
+          expect { task_1.preflight_check }.not_to raise_error
         end
 
         context "transport method is vddk" do
@@ -492,7 +546,7 @@ describe ServiceTemplateTransformationPlanTask do
 
           it "generates conversion options hash" do
             expect(task_1.conversion_options).to eq(
-              :vm_name             => "ssh://root@10.0.0.1/vmfs/volumes/#{src_storage.name}/#{src_vm_1.location}",
+              :vm_name             => "ssh://root@10.0.0.1/vmfs/volumes/stockage%20r%C3%A9cent/#{src_vm_1.location}",
               :transport_method    => 'ssh',
               :rhv_url             => "https://#{dst_ems.hostname}/ovirt-engine/api",
               :rhv_cluster         => dst_cluster.name,
@@ -538,13 +592,20 @@ describe ServiceTemplateTransformationPlanTask do
 
         it_behaves_like "#virtv2v_disks"
 
-        it "checks network mappings and generates network_mappings hash" do
-          expect(task_1.network_mappings).to eq(
-            [
-              { :source => src_lan_1.name, :destination => dst_cloud_network_1.ems_ref, :mac_address => src_nic_1.address, :ip_address => '10.0.0.1' },
-              { :source => src_lan_2.name, :destination => dst_cloud_network_2.ems_ref, :mac_address => src_nic_2.address, :ip_address => nil }
-            ]
-          )
+        context "#network_mappings" do
+          it "generates network_mappings hash" do
+            expect(task_1.network_mappings).to eq(
+              [
+                { :source => src_lan_1.name, :destination => dst_cloud_network_1.ems_ref, :mac_address => src_nic_1.address, :ip_address => '10.0.1.1' },
+                { :source => src_lan_2.name, :destination => dst_cloud_network_2.ems_ref, :mac_address => src_nic_2.address }
+              ]
+            )
+          end
+        end
+
+        it "fails preflight check if src is power off" do
+          src_vm_1.send(:power_state=, 'off')
+          expect { task_1.preflight_check }.to raise_error('OSP destination and source power_state is off')
         end
 
         context "transport method is vddk" do
@@ -591,7 +652,7 @@ describe ServiceTemplateTransformationPlanTask do
 
           it "generates conversion options hash" do
             expect(task_1.conversion_options).to eq(
-              :vm_name                    => "ssh://root@10.0.0.1/vmfs/volumes/#{src_storage.name}/#{src_vm_1.location}",
+              :vm_name                    => "ssh://root@10.0.0.1/vmfs/volumes/stockage%20r%C3%A9cent/#{src_vm_1.location}",
               :transport_method           => 'ssh',
               :osp_environment            => {
                 :os_auth_url             => URI::Generic.build(

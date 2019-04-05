@@ -110,7 +110,7 @@ class EmsCluster < ApplicationRecord
   # Direct Vm relationship methods
   def direct_vm_rels
     # Look for only the Vms at the second depth (default RP + 1)
-    descendant_rels(:of_type => 'VmOrTemplate').select { |r| (r.depth - depth) == 2 }
+    grandchild_rels(:of_type => 'VmOrTemplate')
   end
 
   def direct_vms
@@ -134,7 +134,7 @@ class EmsCluster < ApplicationRecord
   end
 
   virtual_total :total_direct_vms, :direct_vm_rels
-  virtual_total :total_direct_miq_templates, :direct_miq_templates
+  virtual_total :total_direct_miq_templates, :miq_templates
 
   def total_direct_vms_and_templates
     total_direct_vms + total_direct_miq_templates

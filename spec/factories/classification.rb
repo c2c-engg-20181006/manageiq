@@ -2,7 +2,7 @@ FactoryBot.define do
   factory :classification do
     sequence(:name)        { |n| "category_#{seq_padded_for_sorting(n)}" }
     sequence(:description) { |n| "category #{seq_padded_for_sorting(n)}" }
-    parent_id 0
+    parent_id { 0 }
   end
 
   factory :classification_tag, :class => :Classification do
@@ -15,13 +15,13 @@ FactoryBot.define do
   #
 
   factory :classification_cost_center, :parent => :classification do
-    name        "cc"
-    description "Cost Center"
+    name        { "cc" }
+    description { "Cost Center" }
   end
 
   factory :classification_department, :parent => :classification do
-    name        "department"
-    description "Department"
+    name        { "department" }
+    description { "Department" }
   end
 
   #
@@ -29,20 +29,16 @@ FactoryBot.define do
   #
 
   factory :classification_cost_center_with_tags, :parent => :classification_cost_center do
-    children do
-      [
-        FactoryBot.create(:classification_tag, :name => "001", :description => "Cost Center 001"),
-      ]
+    after(:create) do |c|
+      FactoryBot.create(:classification_tag, :name => "001", :description => "Cost Center 001", :parent => c)
     end
   end
 
   factory :classification_department_with_tags, :parent => :classification_department do
-    children do
-      [
-        FactoryBot.create(:classification_tag, :name => "accounting", :description => "Accounting"),
-        FactoryBot.create(:classification_tag, :name => "finance",    :description => "Financial Services"),
-        FactoryBot.create(:classification_tag, :name => "hr",         :description => "Human Resources"),
-      ]
+    after(:create) do |c|
+      FactoryBot.create(:classification_tag, :parent => c, :name => "accounting", :description => "Accounting")
+      FactoryBot.create(:classification_tag, :parent => c, :name => "finance",    :description => "Financial Services")
+      FactoryBot.create(:classification_tag, :parent => c, :name => "hr",         :description => "Human Resources")
     end
   end
 end

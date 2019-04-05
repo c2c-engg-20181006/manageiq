@@ -45,7 +45,9 @@ class ServiceTemplate < ApplicationRecord
   include ArchivedMixin
   include CiFeatureMixin
   include_concern 'Filter'
+  include_concern 'Copy'
 
+  validates :name, :presence => true
   belongs_to :tenant
   # # These relationships are used to specify children spawned from a parent service
   # has_many   :child_services, :class_name => "ServiceTemplate", :foreign_key => :service_template_id
@@ -59,6 +61,7 @@ class ServiceTemplate < ApplicationRecord
   has_one :picture, :dependent => :destroy, :as => :resource, :autosave => true
 
   belongs_to :service_template_catalog
+  belongs_to :zone
 
   has_many   :dialogs, -> { distinct }, :through => :resource_actions
   has_many   :miq_schedules, :as => :resource, :dependent => :destroy
@@ -437,6 +440,10 @@ class ServiceTemplate < ApplicationRecord
     end
   end
 
+  def dup
+    super.tap { |obj| obj.guid = nil }
+  end
+
   def add_resource(rsc, options = {})
     super
     adjust_service_type
@@ -444,6 +451,12 @@ class ServiceTemplate < ApplicationRecord
 
   def self.display_name(number = 1)
     n_('Service Catalog Item', 'Service Catalog Items', number)
+  end
+
+  def my_zone
+    # Catalog items can specify a zone to run in.
+    # Catalog bundle are used for grouping catalog items and are therefore treated as zone-agnostic.
+    zone&.name if atomic?
   end
 
   private

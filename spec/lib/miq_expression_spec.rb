@@ -2553,7 +2553,6 @@ describe MiqExpression do
                                :name         => "prov_max_cpu",
                                :single_value => true,
                                :show         => true,
-                               :parent_id    => 0
                               )
       cat.add_entry(:description  => "1",
                     :read_only    => "0",
@@ -2792,6 +2791,18 @@ describe MiqExpression do
   end
 
   describe ".get_col_info" do
+    it "return column info for missing model" do
+      field = "hostname"
+      col_info = described_class.get_col_info(field)
+      expect(col_info).to match(
+        :data_type                      => nil,
+        :excluded_by_preprocess_options => false,
+        :include                        => {},
+        :tag                            => false,
+        :sql_support                    => false,
+      )
+    end
+
     it "return column info for model-virtual field" do
       field = "VmInfra-uncommitted_storage"
       col_info = described_class.get_col_info(field)
@@ -2801,9 +2812,7 @@ describe MiqExpression do
         :format_sub_type                => :bytes,
         :include                        => {},
         :tag                            => false,
-        :virtual_column                 => true,
         :sql_support                    => false,
-        :virtual_reflection             => false
       )
     end
 
@@ -2816,9 +2825,7 @@ describe MiqExpression do
         :format_sub_type                => :boolean,
         :include                        => {},
         :tag                            => false,
-        :virtual_column                 => true,
         :sql_support                    => true,
-        :virtual_reflection             => false
       )
     end
 
@@ -2831,12 +2838,11 @@ describe MiqExpression do
         :format_sub_type                => nil,
         :include                        => {},
         :tag                            => false,
-        :virtual_column                 => false,
         :sql_support                    => false,
-        :virtual_reflection             => false
       )
     end
 
+    # TODO: think this should return same results as missing model?
     it "return column info for managed-field" do
       tag = "managed-location"
       col_info = described_class.get_col_info(tag)
@@ -2845,9 +2851,7 @@ describe MiqExpression do
         :excluded_by_preprocess_options => false,
         :include                        => {},
         :tag                            => true,
-        :virtual_column                 => false,
         :sql_support                    => true,
-        :virtual_reflection             => false
       )
     end
 
@@ -2859,9 +2863,7 @@ describe MiqExpression do
         :excluded_by_preprocess_options => false,
         :include                        => {},
         :tag                            => true,
-        :virtual_column                 => false,
         :sql_support                    => true,
-        :virtual_reflection             => false
       )
     end
 
@@ -2873,9 +2875,7 @@ describe MiqExpression do
         :excluded_by_preprocess_options => false,
         :include                        => {},
         :tag                            => true,
-        :virtual_column                 => false,
         :sql_support                    => true,
-        :virtual_reflection             => false
       )
     end
 
@@ -2888,9 +2888,7 @@ describe MiqExpression do
         :format_sub_type                => :integer,
         :include                        => {},
         :tag                            => false,
-        :virtual_column                 => false,
         :sql_support                    => true,
-        :virtual_reflection             => false
       )
     end
 
@@ -2903,9 +2901,7 @@ describe MiqExpression do
         :format_sub_type                => :string,
         :include                        => {:guest_applications => {}},
         :tag                            => false,
-        :virtual_column                 => false,
         :sql_support                    => true,
-        :virtual_reflection             => false
       )
     end
 
@@ -2918,9 +2914,7 @@ describe MiqExpression do
         :format_sub_type                => :bytes,
         :include                        => {},
         :tag                            => false,
-        :virtual_column                 => true,
         :sql_support                    => false,
-        :virtual_reflection             => true
       )
     end
 
@@ -2933,9 +2927,7 @@ describe MiqExpression do
         :format_sub_type                => nil,
         :include                        => {},
         :tag                            => false,
-        :virtual_column                 => false,
         :sql_support                    => false,
-        :virtual_reflection             => true
       )
     end
 
@@ -2947,9 +2939,7 @@ describe MiqExpression do
         :excluded_by_preprocess_options => false,
         :include                        => {},
         :tag                            => false,
-        :virtual_column                 => true,
         :sql_support                    => false,
-        :virtual_reflection             => true
       )
     end
 
@@ -2962,9 +2952,7 @@ describe MiqExpression do
         :format_sub_type                => :boolean,
         :include                        => {},
         :tag                            => false,
-        :virtual_column                 => true,
         :sql_support                    => false,
-        :virtual_reflection             => true
       )
     end
   end
