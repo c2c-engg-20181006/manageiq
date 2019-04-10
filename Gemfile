@@ -31,6 +31,7 @@ manageiq_plugin "manageiq-providers-ansible_tower"
 c2c_manageiq_plugin "manageiq-schema", "dev"
 
 # Unmodified gems
+gem "activerecord-virtual_attributes", "~>1.0.0"
 gem "activerecord-id_regions",        "~>0.2.0"
 gem "activerecord-session_store",     "~>1.1"
 gem "acts_as_tree",                   "~>2.7" # acts_as_tree needs to be required so that it loads before ancestry
