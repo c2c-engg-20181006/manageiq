@@ -51,6 +51,12 @@ MIQ_WORKER_TYPES = {
   "ManageIQ::Providers::Telefonica::NetworkManager::EventCatcher"                => %i(manageiq_default),
   "ManageIQ::Providers::Telefonica::NetworkManager::MetricsCollectorWorker"      => %i(manageiq_default),
   "ManageIQ::Providers::Telefonica::StorageManager::CinderManager::EventCatcher" => %i(manageiq_default),
+  "ManageIQ::Providers::Huawei::CloudManager::EventCatcher"                  => %i(manageiq_default),
+  "ManageIQ::Providers::Huawei::CloudManager::MetricsCollectorWorker"        => %i(manageiq_default),
+  "ManageIQ::Providers::Huawei::CloudManager::RefreshWorker"                 => %i(manageiq_default),
+  "ManageIQ::Providers::Huawei::NetworkManager::EventCatcher"                => %i(manageiq_default),
+  "ManageIQ::Providers::Huawei::NetworkManager::MetricsCollectorWorker"      => %i(manageiq_default),
+  "ManageIQ::Providers::Huawei::StorageManager::CinderManager::EventCatcher" => %i(manageiq_default),
   "ManageIQ::Providers::Orange::CloudManager::EventCatcher"                  => %i(manageiq_default),
   "ManageIQ::Providers::Orange::CloudManager::MetricsCollectorWorker"        => %i(manageiq_default),
   "ManageIQ::Providers::Orange::CloudManager::RefreshWorker"                 => %i(manageiq_default),
@@ -100,6 +106,8 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Openstack::NetworkManager::MetricsCollectorWorker
   ManageIQ::Providers::Telefonica::CloudManager::MetricsCollectorWorker
   ManageIQ::Providers::Telefonica::NetworkManager::MetricsCollectorWorker
+  ManageIQ::Providers::Huawei::CloudManager::MetricsCollectorWorker
+  ManageIQ::Providers::Huawei::NetworkManager::MetricsCollectorWorker
   ManageIQ::Providers::Orange::CloudManager::MetricsCollectorWorker
   ManageIQ::Providers::Orange::NetworkManager::MetricsCollectorWorker
   ManageIQ::Providers::Redhat::NetworkManager::MetricsCollectorWorker
@@ -134,6 +142,8 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Openstack::NetworkManager::RefreshWorker
   ManageIQ::Providers::Telefonica::CloudManager::RefreshWorker
   ManageIQ::Providers::Telefonica::NetworkManager::RefreshWorker
+  ManageIQ::Providers::Huawei::CloudManager::RefreshWorker
+  ManageIQ::Providers::Huawei::NetworkManager::RefreshWorker
   ManageIQ::Providers::Orange::CloudManager::RefreshWorker
   ManageIQ::Providers::Orange::NetworkManager::RefreshWorker
   ManageIQ::Providers::Redhat::NetworkManager::RefreshWorker
@@ -159,6 +169,9 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Telefonica::CloudManager::EventCatcher
   ManageIQ::Providers::Telefonica::NetworkManager::EventCatcher
   ManageIQ::Providers::Telefonica::StorageManager::CinderManager::EventCatcher
+  ManageIQ::Providers::Huawei::CloudManager::EventCatcher
+  ManageIQ::Providers::Huawei::NetworkManager::EventCatcher
+  ManageIQ::Providers::Huawei::StorageManager::CinderManager::EventCatcher
   ManageIQ::Providers::Orange::CloudManager::EventCatcher
   ManageIQ::Providers::Orange::NetworkManager::EventCatcher
   ManageIQ::Providers::Orange::StorageManager::CinderManager::EventCatcher

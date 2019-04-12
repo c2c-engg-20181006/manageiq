@@ -98,8 +98,9 @@ gem "american_date"
 #gem "manageiq-providers-telefonica" ,:require=>false, :git=>"https://github.com/click2cloud/manageiq-providers-telefonica.git", :branch=>"dev-aniket"
 #c2c_manageiq_plugin "manageiq-providers-telefonica", "master"
 gem 'manageiq-providers-telefonica', :path => '../manageiq-providers-telefonica'
+gem 'manageiq-providers-huawei', :path => '../manageiq-providers-huawei'
 gem 'manageiq-providers-orange', :path => '../manageiq-providers-orange'
-
+``
 group :openstack, :manageiq_default do
   manageiq_plugin "manageiq-providers-openstack"
 end
