@@ -100,7 +100,7 @@ gem "american_date"
 gem 'manageiq-providers-telefonica', :path => '../manageiq-providers-telefonica'
 gem 'manageiq-providers-huawei', :path => '../manageiq-providers-huawei'
 gem 'manageiq-providers-orange', :path => '../manageiq-providers-orange'
-``
+
 group :openstack, :manageiq_default do
   manageiq_plugin "manageiq-providers-openstack"
 end
