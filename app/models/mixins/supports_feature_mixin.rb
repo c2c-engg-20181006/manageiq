@@ -148,7 +148,8 @@ module SupportsFeatureMixin
       :volume_multiattachment              => 'Volume Multiattachment',
       :volume_resizing                     => 'Volume Resizing',
       :change_password                     => 'Change Password',
-      :vm_destroy                          => 'Deleting a VM'
+      :vm_destroy                          => 'Deleting a VM',
+      :volume_availability_zones           => 'Volume Availability Zones'
   }.freeze
 
   # Whenever this mixin is included we define all features as unsupported by default.
