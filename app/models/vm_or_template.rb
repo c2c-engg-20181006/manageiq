@@ -45,6 +45,7 @@ class VmOrTemplate < ApplicationRecord
     "xen"       => "XenSource",
     "parallels" => "Parallels",
     "amazon"    => "Amazon",
+    "alibaba"   => "Alibaba",
     "redhat"    => "RedHat",
     "openstack" => "OpenStack",
     "telefonica"=> "Telefonica",

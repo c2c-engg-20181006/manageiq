@@ -755,6 +755,7 @@ en:
       ManageIQ::Providers::EmbeddedAutomationManager::Authentication:                Credential
       ManageIQ::Providers::EmbeddedAutomationManager::ConfigurationScriptSource:     Repository
       ManageIQ::Providers::EmbeddedAnsible::AutomationManager::AmazonCredential:     Credential (Amazon)
+      ManageIQ::Providers::EmbeddedAnsible::AutomationManager::AlibabaCredential:    Credential (Alibaba)
       ManageIQ::Providers::EmbeddedAnsible::AutomationManager::AzureCredential:      Credential (Microsoft Azure)
       ManageIQ::Providers::EmbeddedAnsible::AutomationManager::GoogleCredential:     Credential (Google)
       ManageIQ::Providers::EmbeddedAnsible::AutomationManager::MachineCredential:    Credential (Machine)
@@ -771,6 +772,7 @@ en:
       ManageIQ::Providers::EmbeddedAnsible::AutomationManager::ConfigurationScriptSource: Repository (Embedded Ansible)
       ManageIQ::Providers::AutomationManager::Authentication:                     Credential
       ManageIQ::Providers::AnsibleTower::AutomationManager::AmazonCredential:     Credential (Amazon)
+      ManageIQ::Providers::AnsibleTower::AutomationManager::AlibabaCredential:    Credential (Alibaba)
       ManageIQ::Providers::AnsibleTower::AutomationManager::AzureCredential:      Credential (Microsoft Azure)
       ManageIQ::Providers::AnsibleTower::AutomationManager::GoogleCredential:     Credential (Google)
       ManageIQ::Providers::AnsibleTower::AutomationManager::MachineCredential:    Credential (Machine)
@@ -798,14 +800,17 @@ en:
       ManageIQ::Providers::Telefonica::CloudManager::Vm:                    Instance (Telefonica)
       ManageIQ::Providers::Azure::CloudManager::Vm:                         Instance (Microsoft Azure)
       ManageIQ::Providers::Amazon::CloudManager::Vm:                        Instance (Amazon)
+      ManageIQ::Providers::Alibaba::CloudManager::Vm:                       Instance (Alibaba)
       ManageIQ::Providers::Vmware::CloudManager::Vm:                        Instance (VMware vCloud)
       ManageIQ::Providers::Amazon::CloudManager::Flavor:                    Flavor (Amazon)
+      ManageIQ::Providers::Alibaba::CloudManager::Flavor:                   Flavor (Alibaba)
       ManageIQ::Providers::Google::CloudManager::Flavor:                    Flavor (Google)
       ManageIQ::Providers::Azure::CloudManager::Flavor:                     Flavor (Microsoft Azure)
       ManageIQ::Providers::Openstack::CloudManager::Flavor:                 Flavor (OpenStack)
       ManageIQ::Providers::Telefonica::CloudManager::Flavor:                Flavor (Telefonica)
       ManageIQ::Providers::CloudManager::Template:                          Image
       ManageIQ::Providers::Amazon::CloudManager::Template:                  Image (Amazon)
+      ManageIQ::Providers::Alibaba::CloudManager::Template:                 Image (Alibaba)
       ManageIQ::Providers::CloudManager::VirtualTemplate:                   Resourceless Server Template
       ManageIQ::Providers::CloudManager::OrchestrationStack:                Orchestration Stack
       ManageIQ::Providers::ContainerManager:                                Containers Provider
@@ -832,6 +837,7 @@ en:
       ManageIQ::Providers::Telefonica::NetworkManager::CloudNetwork::Private: Cloud Network (Telefonica)
       ManageIQ::Providers::Telefonica::NetworkManager::CloudNetwork::Public: External Cloud Network (Telefonica)
       ManageIQ::Providers::Amazon::CloudManager:                            Cloud Provider (Amazon)
+      ManageIQ::Providers::Alibaba::CloudManager:                           Cloud Provider (Alibaba)
       ManageIQ::Providers::Azure::CloudManager:                             Cloud Provider (Microsoft Azure)
       ManageIQ::Providers::Vmware::CloudManager:                            Cloud Provider (VMware vCloud)
       ManageIQ::Providers::Azure::NetworkManager::CloudNetwork:             Cloud Network (Microsoft Azure)
@@ -844,6 +850,11 @@ en:
       ManageIQ::Providers::Amazon::NetworkManager::CloudSubnet:             Cloud Subnet (Amazon)
       ManageIQ::Providers::Amazon::NetworkManager::LoadBalancer:            Load Balancer (Amazon)
       ManageIQ::Providers::Amazon::NetworkManager::SecurityGroup:           Security Group (Amazon)
+      ManageIQ::Providers::Alibaba::NetworkManager:                         Network Provider (Alibaba)
+      ManageIQ::Providers::Alibaba::NetworkManager::CloudNetwork:           Cloud Network (Alibaba)
+      ManageIQ::Providers::Alibaba::NetworkManager::CloudSubnet:            Cloud Subnet (Alibaba)
+      ManageIQ::Providers::Alibaba::NetworkManager::LoadBalancer:           Load Balancer (Alibaba)
+      ManageIQ::Providers::Alibaba::NetworkManager::SecurityGroup:          Security Group (Alibaba)
       ManageIQ::Providers::Google::NetworkManager:                          Network Provider (Google)
       ManageIQ::Providers::Google::NetworkManager::SecurityGroup:           Security Group (Google)
       ManageIQ::Providers::Google::NetworkManager::LoadBalancer:            Load Balancer (Google)
@@ -860,6 +871,7 @@ en:
       ManageIQ::Providers::Openstack::NetworkManager::FloatingIp:           Floating IP (OpenStack)
       ManageIQ::Providers::Telefonica::NetworkManager::FloatingIp:           Floating IP (Telefonica)
       ManageIQ::Providers::Amazon::NetworkManager::FloatingIp:              Floating IP (Amazon)
+      ManageIQ::Providers::Alibaba::NetworkManager::FloatingIp:             Floating IP (Alibaba)
       ManageIQ::Providers::Azure::NetworkManager::FloatingIp:               Floating IP (Microsoft Azure)
       ManageIQ::Providers::Openstack::NetworkManager::CloudSubnet:          Cloud Subnet (OpenStack)
       ManageIQ::Providers::Openstack::NetworkManager::NetworkRouter:        Network Router (OpenStack)
@@ -874,6 +886,9 @@ en:
       ManageIQ::Providers::Amazon::CloudManager::OrchestrationStack:        Orchestration Stack (Amazon)
       ManageIQ::Providers::Amazon::NetworkManager::NetworkPort:             Network Port (Amazon)
       ManageIQ::Providers::Amazon::NetworkManager::NetworkRouter:           Network Router (Amazon)
+      ManageIQ::Providers::Alibaba::CloudManager::OrchestrationStack:       Orchestration Stack (Alibaba)
+      ManageIQ::Providers::Alibaba::NetworkManager::NetworkPort:            Network Port (Alibaba)
+      ManageIQ::Providers::Alibaba::NetworkManager::NetworkRouter:          Network Router (Alibaba)
       ManageIQ::Providers::Azure::NetworkManager:                           Network Manager (Microsoft Azure)
       ManageIQ::Providers::Azure::NetworkManager::NetworkPort:              Network Port (Microsoft Azure)
       ManageIQ::Providers::Openstack::NetworkManager::NetworkPort:          Network Port (OpenStack)
@@ -928,6 +943,7 @@ en:
       OrchestrationStack:       Orchestration Stack
       OrchestrationTemplate:    Orchestration Template
       ManageIQ::Providers::Amazon::CloudManager::OrchestrationTemplate:    CloudFormation Template
+      ManageIQ::Providers::Alibaba::CloudManager::OrchestrationTemplate:    CloudFormation Template
       ManageIQ::Providers::Openstack::CloudManager::OrchestrationTemplate: Heat Template
       ManageIQ::Providers::Telefonica::CloudManager::OrchestrationTemplate: Heat Template
       ManageIQ::Providers::Azure::CloudManager::OrchestrationTemplate:     Azure Template

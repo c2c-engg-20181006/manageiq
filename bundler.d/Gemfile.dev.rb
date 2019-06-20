@@ -1,3 +1,4 @@
 override_gem 'manageiq-providers-telefonica', :path => "../../manageiq-providers-telefonica"
 override_gem 'manageiq-providers-huawei', :path => "../../manageiq-providers-huawei"
 override_gem 'manageiq-providers-orange', :path => "../../manageiq-providers-orange"
+override_gem 'manageiq-providers-alibaba', :path => "../../manageiq-providers-alibaba"

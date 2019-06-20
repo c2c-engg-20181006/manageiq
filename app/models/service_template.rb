@@ -12,6 +12,7 @@ class ServiceTemplate < ApplicationRecord
 
   CATALOG_ITEM_TYPES = {
     "amazon"                     => N_("Amazon"),
+    "alibaba"                    => N_("Alibaba"),
     "azure"                      => N_("Azure"),
     "generic"                    => N_("Generic"),
     "generic_orchestration"      => N_("Orchestration"),

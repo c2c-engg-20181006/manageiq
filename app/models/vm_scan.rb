@@ -448,7 +448,7 @@ class VmScan < Job
   end
 
   def start_user_event_message(vm, send = true)
-    return if vm.vendor == "amazon"
+    return if vm.vendor == "amazon" || vm.vendor == "alibaba"
 
     user_event = "EVM SmartState Analysis Initiated for VM [#{vm.name}]"
     log_user_event(user_event, vm) if send
@@ -456,7 +456,7 @@ class VmScan < Job
   end
 
   def end_user_event_message(vm, send = true)
-    return if vm.vendor == "amazon"
+    return if vm.vendor == "amazon" || vm.vendor == "alibaba"
 
     user_event = "EVM SmartState Analysis completed for VM [#{vm.name}]"
     unless options[:end_message_sent]

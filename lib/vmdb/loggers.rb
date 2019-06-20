@@ -38,6 +38,7 @@ module Vmdb
       apply_config_value(config, $vcloud_log,         :level_vcloud)
       apply_config_value(config, $vim_log,            :level_vim)
       apply_config_value(config, $remote_console_log, :level_remote_console)
+      apply_config_value(config, $aliyun_log,         :level_aliyun)
     end
 
     def self.create_loggers
@@ -64,6 +65,7 @@ module Vmdb
       $scvmm_log          = create_multicast_logger(path_dir.join("scvmm.log"))
       $vcloud_log         = create_multicast_logger(path_dir.join("vcloud.log"))
       $vim_log            = create_multicast_logger(path_dir.join("vim.log"))
+      $aliyun_log         = create_multicast_logger(path_dir.join("aliyun.log"))
       $remote_console_log = create_multicast_logger(path_dir.join("remote_console.log"))
 
       configure_external_loggers

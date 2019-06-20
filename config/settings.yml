@@ -16,6 +16,8 @@
   :user_type: userprincipalname
   :amazon_key:
   :amazon_secret:
+  :alibaba_key:
+  :alibaba_secret:
 :binary_blob:
   :purge_window_size: 100
 :broker_notify_properties:

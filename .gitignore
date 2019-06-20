@@ -6,7 +6,6 @@
 *.sublime-workspace
 *.suo
 *.swp
-.bundle/
 .idea/
 .loadpath
 .project
@@ -35,8 +34,6 @@ xfer_*.xml
 Thumbs.db
 Procfile
 
-# bin/
-bin/*
 
 # config/
 config/apache
@@ -83,9 +80,6 @@ vendor/node_root/
 
 # npm
 node_modules/
-
-# ignore included plugins in bundler.d
-bundler.d/*
 
 # yardoc
 /doc/

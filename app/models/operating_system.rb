@@ -71,7 +71,7 @@ class OperatingSystem < ApplicationRecord
   end
 
   def self.normalize_os_name(osName)
-    findStr = osName.downcase.gsub(/[^a-z0-9]/, "")
+    findStr = osName.to_s.downcase.gsub(/[^a-z0-9]/, "")
     @@os_map.each do |a|
       a[1].each do |n|
         return a[0] unless findStr.index(n).nil?

@@ -7,6 +7,11 @@ MIQ_WORKER_TYPES = {
   "ManageIQ::Providers::Amazon::CloudManager::MetricsCollectorWorker"           => %i(manageiq_default),
   "ManageIQ::Providers::Amazon::CloudManager::RefreshWorker"                    => %i(manageiq_default),
   "ManageIQ::Providers::Amazon::StorageManager::S3::RefreshWorker"              => %i(manageiq_default),
+  "ManageIQ::Providers::Alibaba::AgentCoordinatorWorker"                        => %i(manageiq_default),
+  "ManageIQ::Providers::Alibaba::CloudManager::EventCatcher"                    => %i(manageiq_default),
+  "ManageIQ::Providers::Alibaba::CloudManager::MetricsCollectorWorker"          => %i(manageiq_default),
+  "ManageIQ::Providers::Alibaba::CloudManager::RefreshWorker"                   => %i(manageiq_default),
+  "ManageIQ::Providers::Alibaba::StorageManager::OSS::RefreshWorker"            => %i(manageiq_default),
   "ManageIQ::Providers::AnsibleTower::AutomationManager::EventCatcher"          => %i(manageiq_default),
   "ManageIQ::Providers::AnsibleTower::AutomationManager::RefreshWorker"         => %i(manageiq_default),
   "ManageIQ::Providers::Azure::CloudManager::EventCatcher"                      => %i(manageiq_default),
@@ -97,6 +102,7 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   MiqEmsMetricsProcessorWorker
   ManageIQ::Providers::Azure::CloudManager::MetricsCollectorWorker
   ManageIQ::Providers::Amazon::CloudManager::MetricsCollectorWorker
+  ManageIQ::Providers::Alibaba::CloudManager::MetricsCollectorWorker
   ManageIQ::Providers::Redhat::InfraManager::MetricsCollectorWorker
   ManageIQ::Providers::Kubernetes::ContainerManager::MetricsCollectorWorker
   ManageIQ::Providers::Openshift::ContainerManager::MetricsCollectorWorker
@@ -124,6 +130,11 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Amazon::StorageManager::Ebs::RefreshWorker
   ManageIQ::Providers::Amazon::StorageManager::S3::RefreshWorker
   ManageIQ::Providers::Amazon::AgentCoordinatorWorker
+  ManageIQ::Providers::Alibaba::CloudManager::RefreshWorker
+  ManageIQ::Providers::Alibaba::NetworkManager::RefreshWorker
+  ManageIQ::Providers::Alibaba::StorageManager::Ebs::RefreshWorker
+  ManageIQ::Providers::Alibaba::StorageManager::OSS::RefreshWorker
+  ManageIQ::Providers::Alibaba::AgentCoordinatorWorker
   ManageIQ::Providers::Google::CloudManager::RefreshWorker
   ManageIQ::Providers::Google::NetworkManager::RefreshWorker
   ManageIQ::Providers::AnsibleTower::AutomationManager::RefreshWorker
@@ -179,6 +190,7 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Redhat::NetworkManager::EventCatcher
   ManageIQ::Providers::Openstack::InfraManager::EventCatcher
   ManageIQ::Providers::Amazon::CloudManager::EventCatcher
+  ManageIQ::Providers::Alibaba::CloudManager::EventCatcher
   ManageIQ::Providers::Azure::CloudManager::EventCatcher
   ManageIQ::Providers::AnsibleTower::AutomationManager::EventCatcher
   ManageIQ::Providers::EmbeddedAnsible::AutomationManager::EventCatcher

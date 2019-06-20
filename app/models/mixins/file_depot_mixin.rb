@@ -7,6 +7,7 @@ module FileDepotMixin
     'smb'   => 'Samba',
     'nfs'   => 'Network File System',
     's3'    => 'Amazon Web Services',
+    'oss'   => 'Alibaba Web Services',
     'swift' => 'OpenStack Swift'
   }.freeze
 
