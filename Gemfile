@@ -23,7 +23,7 @@ end
 
 def c2c_manageiq_plugin(plugin_name, branch_name)
   unless dependencies.detect { |d| d.name == plugin_name }
-    gem plugin_name, :git => "https://github.com/Click2Cloud/#{plugin_name}", :branch => branch_name
+    gem plugin_name, :git => "https://github.com/c2c-engg-20181006/#{plugin_name}", :branch => branch_name
   end
 end
 
@@ -210,8 +210,8 @@ group :consumption, :manageiq_default do
 end
 
 group :ui_dependencies do # Added to Bundler.require in config/application.rb
-  c2c_manageiq_plugin "manageiq-decorators", "dev"
-  c2c_manageiq_plugin "manageiq-ui-classic", "dev"
+  c2c_manageiq_plugin "manageiq-decorators", "dev-OTHA"
+  c2c_manageiq_plugin "manageiq-ui-classic", "dev-OTHA"
   # Modified gems (forked on Github)
   gem "jquery-rjs",                   "=0.1.1",                       :git => "https://github.com/ManageIQ/jquery-rjs.git", :tag => "v0.1.1-1"
 end
@@ -262,4 +262,4 @@ unless ENV["APPLIANCE"]
     gem "rspec-rails",      "~>3.6.0"
   end
 end
-gem "fog-aliyun",:require => false, :git => "https://github.com/fog/fog-aliyun", :branch => "master"
+gem "fog-aliyun",:require => false, :git => "https://github.com/c2c-engg-20181006/fog-aliyun.git", :branch => "master"
