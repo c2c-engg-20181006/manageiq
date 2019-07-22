@@ -77,7 +77,7 @@ module CloudVolume::Operations
     def validate_volume_in_use
       msg = validate_volume
       return {:available => msg[:available], :message => msg[:message]} unless msg[:available]
-      return {:available => true, :message => nil} if status == "in-use"
+      return {:available => true, :message => nil} if status == "in-use" || status == "In_use"
       {:available => false, :message => _("The volume can't be detached, status has to be 'in-use'")}
     end
   end
