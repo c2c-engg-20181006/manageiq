@@ -35,6 +35,7 @@
 - ems-type:ecs_ebs_storage
 - ems-type:embedded_ansible_automation
 - ems-type:s3
+- ems-type:oss
 - ems-type:foreman_configuration
 - ems-type:foreman_provisioning
 - ems-type:gce
