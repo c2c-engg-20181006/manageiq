@@ -36,6 +36,8 @@ MIQ_WORKER_TYPES = {
   "ManageIQ::Providers::Microsoft::InfraManager::RefreshWorker"                 => %i(manageiq_default),
   "ManageIQ::Providers::Nuage::NetworkManager::RefreshWorker"                   => %i(manageiq_default),
   "ManageIQ::Providers::Nuage::NetworkManager::EventCatcher"                    => %i(manageiq_default),
+  "ManageIQ::Providers::Alibaba::NetworkManager::RefreshWorker"                 => %i(manageiq_default),
+  "ManageIQ::Providers::Alibaba::NetworkManager::EventCatcher"                  => %i(manageiq_default),
   "ManageIQ::Providers::Openshift::ContainerManager::EventCatcher"              => %i(manageiq_default),
   "ManageIQ::Providers::Openshift::ContainerManager::MetricsCollectorWorker"    => %i(manageiq_default),
   "ManageIQ::Providers::Openshift::ContainerManager::InventoryCollectorWorker"  => %i(manageiq_default),
@@ -177,6 +179,7 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Openstack::CloudManager::EventCatcher
   ManageIQ::Providers::Openstack::NetworkManager::EventCatcher
   ManageIQ::Providers::Openstack::StorageManager::CinderManager::EventCatcher
+  ManageIQ::Providers::Alibaba::NetworkManager::EventCatcher
   ManageIQ::Providers::Telefonica::CloudManager::EventCatcher
   ManageIQ::Providers::Telefonica::NetworkManager::EventCatcher
   ManageIQ::Providers::Telefonica::StorageManager::CinderManager::EventCatcher
