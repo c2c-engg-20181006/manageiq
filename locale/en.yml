@@ -762,6 +762,7 @@ en:
       ManageIQ::Providers::EmbeddedAnsible::AutomationManager::NetworkCredential:    Credential (Network)
       ManageIQ::Providers::EmbeddedAnsible::AutomationManager::VaultCredential:      Credential (Vault)
       ManageIQ::Providers::EmbeddedAnsible::AutomationManager::OpenstackCredential:  Credential (OpenStack)
+      ManageIQ::Providers::EmbeddedAnsible::AutomationManager::OtcCredential:        Credential (Otc)
       ManageIQ::Providers::EmbeddedAnsible::AutomationManager::TelefonicaCredential: Credential (Telefonica)
       ManageIQ::Providers::EmbeddedAnsible::AutomationManager::RackspaceCredential:  Credential (Rackspace)
       ManageIQ::Providers::EmbeddedAnsible::AutomationManager::RhvCredential:        Credential (RHV)
@@ -778,6 +779,7 @@ en:
       ManageIQ::Providers::AnsibleTower::AutomationManager::MachineCredential:    Credential (Machine)
       ManageIQ::Providers::AnsibleTower::AutomationManager::NetworkCredential:    Credential (Network)
       ManageIQ::Providers::AnsibleTower::AutomationManager::OpenstackCredential:  Credential (OpenStack)
+      ManageIQ::Providers::AnsibleTower::AutomationManager::OtcCredential:        Credential (Otc)
       ManageIQ::Providers::AnsibleTower::AutomationManager::TelefonicaCredential:  Credential (Telefonica)
       ManageIQ::Providers::AnsibleTower::AutomationManager::RackspaceCredential:  Credential (Rackspace)
       ManageIQ::Providers::AnsibleTower::AutomationManager::Satellite6Credential: Credential (Satellite)
@@ -798,6 +800,7 @@ en:
       ManageIQ::Providers::Google::CloudManager::Vm:                        Instance (Google)
       ManageIQ::Providers::Openstack::CloudManager::Vm:                     Instance (OpenStack)
       ManageIQ::Providers::Telefonica::CloudManager::Vm:                    Instance (Telefonica)
+      ManageIQ::Providers::Otc::CloudManager::Vm:                           Instance (Otc)
       ManageIQ::Providers::Azure::CloudManager::Vm:                         Instance (Microsoft Azure)
       ManageIQ::Providers::Amazon::CloudManager::Vm:                        Instance (Amazon)
       ManageIQ::Providers::Alibaba::CloudManager::Vm:                       Instance (Alibaba)
@@ -808,6 +811,7 @@ en:
       ManageIQ::Providers::Azure::CloudManager::Flavor:                     Flavor (Microsoft Azure)
       ManageIQ::Providers::Openstack::CloudManager::Flavor:                 Flavor (OpenStack)
       ManageIQ::Providers::Telefonica::CloudManager::Flavor:                Flavor (Telefonica)
+      ManageIQ::Providers::Otc::CloudManager::Flavor:                       Flavor (Otc)
       ManageIQ::Providers::CloudManager::Template:                          Image
       ManageIQ::Providers::Amazon::CloudManager::Template:                  Image (Amazon)
       ManageIQ::Providers::Alibaba::CloudManager::Template:                 Image (Alibaba)
@@ -836,6 +840,11 @@ en:
       ManageIQ::Providers::Telefonica::NetworkManager::CloudNetwork:         Cloud Network (Telefonica)
       ManageIQ::Providers::Telefonica::NetworkManager::CloudNetwork::Private: Cloud Network (Telefonica)
       ManageIQ::Providers::Telefonica::NetworkManager::CloudNetwork::Public: External Cloud Network (Telefonica)
+      ManageIQ::Providers::Otc::CloudManager:                               Cloud Provider (Otc)
+      ManageIQ::Providers::Otc::NetworkManager:                             Network Provider (Otc)
+      ManageIQ::Providers::Otc::NetworkManager::CloudNetwork:               Cloud Network (Otc)
+      ManageIQ::Providers::Otc::NetworkManager::CloudNetwork::Private:      Cloud Network (Otc)
+      ManageIQ::Providers::Otc::NetworkManager::CloudNetwork::Public:       External Cloud Network (Otc)
       ManageIQ::Providers::Amazon::CloudManager:                            Cloud Provider (Amazon)
       ManageIQ::Providers::Alibaba::CloudManager:                           Cloud Provider (Alibaba)
       ManageIQ::Providers::Azure::CloudManager:                             Cloud Provider (Microsoft Azure)
@@ -865,11 +874,13 @@ en:
       ManageIQ::Providers::Google::NetworkManager::CloudNetwork:            Cloud Network (Google)
       ManageIQ::Providers::Openstack::NetworkManager::SecurityGroup:        Security Group (OpenStack)
       ManageIQ::Providers::Telefonica::NetworkManager::SecurityGroup:       Security Group (Telefonica)
+      ManageIQ::Providers::Otc::NetworkManager::SecurityGroup:              Security Group (Otc)
       ManageIQ::Providers::Azure::NetworkManager::LoadBalancer:             LoadBalancer (Microsoft Azure)
       ManageIQ::Providers::Azure::NetworkManager::CloudSubnet:              Cloud Subnet (Microsoft Azure)
       ManageIQ::Providers::Azure::CloudManager::SecurityGroup:              Security Group (Microsoft Azure)
       ManageIQ::Providers::Openstack::NetworkManager::FloatingIp:           Floating IP (OpenStack)
       ManageIQ::Providers::Telefonica::NetworkManager::FloatingIp:           Floating IP (Telefonica)
+      ManageIQ::Providers::Otc::NetworkManager::FloatingIp:                 Floating IP (Otc)
       ManageIQ::Providers::Amazon::NetworkManager::FloatingIp:              Floating IP (Amazon)
       ManageIQ::Providers::Alibaba::NetworkManager::FloatingIp:             Floating IP (Alibaba)
       ManageIQ::Providers::Azure::NetworkManager::FloatingIp:               Floating IP (Microsoft Azure)
@@ -882,6 +893,10 @@ en:
       ManageIQ::Providers::Telefonica::NetworkManager::NetworkRouter:        Network Router (Telefonica)
       ManageIQ::Providers::Telefonica::CloudManager::CloudTenant:            Cloud Tenant (Telefonica)
       ManageIQ::Providers::Telefonica::CloudManager::OrchestrationStack:     Orchestration Stack (Telefonica)
+      ManageIQ::Providers::Otc::NetworkManager::CloudSubnet:                Cloud Subnet (Otc)
+      ManageIQ::Providers::Otc::NetworkManager::NetworkRouter:              Network Router (Otc)
+      ManageIQ::Providers::Otc::CloudManager::CloudTenant:                  Cloud Tenant (Otc)
+      ManageIQ::Providers::Otc::CloudManager::OrchestrationStack:           Orchestration Stack (Otc)
       ManageIQ::Providers::Azure::CloudManager::OrchestrationStack:         Orchestration Stack (Microsoft Azure)
       ManageIQ::Providers::Amazon::CloudManager::OrchestrationStack:        Orchestration Stack (Amazon)
       ManageIQ::Providers::Amazon::NetworkManager::NetworkPort:             Network Port (Amazon)
@@ -892,7 +907,8 @@ en:
       ManageIQ::Providers::Azure::NetworkManager:                           Network Manager (Microsoft Azure)
       ManageIQ::Providers::Azure::NetworkManager::NetworkPort:              Network Port (Microsoft Azure)
       ManageIQ::Providers::Openstack::NetworkManager::NetworkPort:          Network Port (OpenStack)
-      ManageIQ::Providers::Telefonica::NetworkManager::NetworkPort:          Network Port (Telefonica)
+      ManageIQ::Providers::Telefonica::NetworkManager::NetworkPort:         Network Port (Telefonica)
+      ManageIQ::Providers::Otc::NetworkManager::NetworkPort:                Network Port (Otc)
       ManageIQ::Providers::StorageManager:                                  Storage Manager
       ManageIQ::Providers::StorageManager::CinderManager:                   Storage Manager (Cinder)
       ManageIQ::Providers::StorageManager::SwiftManager:                    Storage Manager (Swift)
@@ -946,9 +962,11 @@ en:
       ManageIQ::Providers::Alibaba::CloudManager::OrchestrationTemplate:    CloudFormation Template
       ManageIQ::Providers::Openstack::CloudManager::OrchestrationTemplate: Heat Template
       ManageIQ::Providers::Telefonica::CloudManager::OrchestrationTemplate: Heat Template
+      ManageIQ::Providers::Otc::CloudManager::OrchestrationTemplate:        Heat Template
       ManageIQ::Providers::Azure::CloudManager::OrchestrationTemplate:     Azure Template
       ManageIQ::Providers::Openstack::CloudManager::VnfdTemplate:          VNF Template
       ManageIQ::Providers::Telefonica::CloudManager::VnfdTemplate:          VNF Template
+      ManageIQ::Providers::Otc::CloudManager::VnfdTemplate:                VNF Template
       ManageIQ::Providers::Vmware::CloudManager::OrchestrationTemplate:    vApp Template
       PersistentVolume:         Persistent Volume
       PhysicalServer:           Physical Server
@@ -1093,6 +1111,7 @@ en:
       manageiq_providers_openstack_infra_manager_cloud_networks: Cloud Networks (OpenStack)
       manageiq_providers_openstack_cloud_manager_cloud_tenant: Cloud Tenants (OpenStack)
       manageiq_providers_telefonica_cloud_manager_cloud_tenant: Cloud Tenants (Telefonica)
+      manageiq_providers_otc_cloud_manager_cloud_tenant: Cloud Tenants (Otc)
       miq_provision:               Provision
       miq_provision_template:      Provisioned From Template
       miq_provision_vms:           Provisioned VMs

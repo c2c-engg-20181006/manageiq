@@ -100,12 +100,11 @@ gem "american_date"
 gem 'manageiq-providers-telefonica', :path => '../manageiq-providers-telefonica'
 gem 'manageiq-providers-orange', :path => '../manageiq-providers-orange'
 gem 'manageiq-providers-huawei', :path => '../manageiq-providers-huawei'
+gem 'manageiq-providers-alibaba', :path => '../manageiq-providers-alibaba'
+gem 'manageiq-providers-otc', :path => '../manageiq-providers-otc'
+
 group :openstack, :manageiq_default do
   manageiq_plugin "manageiq-providers-openstack"
-end
-
-group :alibaba, :manageiq_default do
-  gem 'manageiq-providers-alibaba', :path => '../manageiq-providers-alibaba'
 end
 
 group :amazon, :manageiq_default do
@@ -211,7 +210,7 @@ end
 
 group :ui_dependencies do # Added to Bundler.require in config/application.rb
   c2c_manageiq_plugin "manageiq-decorators", "dev-OTHA"
-  c2c_manageiq_plugin "manageiq-ui-classic", "dev-OTHA"
+  c2c_manageiq_plugin "manageiq-ui-classic", "dev-otc"
   # Modified gems (forked on Github)
   gem "jquery-rjs",                   "=0.1.1",                       :git => "https://github.com/ManageIQ/jquery-rjs.git", :tag => "v0.1.1-1"
 end

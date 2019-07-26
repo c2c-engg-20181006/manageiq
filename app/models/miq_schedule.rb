@@ -339,6 +339,7 @@ class MiqSchedule < ApplicationRecord
     api_port                   = params[:swift_api_port]
     depot.aws_region           = params[:aws_region]
     depot.openstack_region     = params[:openstack_region]
+    depot.otc_region           = params[:otc_region]
     depot.keystone_api_version = params[:keystone_api_version]
     depot.v3_domain_ident      = params[:v3_domain_ident]
     depot.security_protocol    = params[:security_protocol]

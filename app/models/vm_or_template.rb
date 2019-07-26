@@ -48,6 +48,7 @@ class VmOrTemplate < ApplicationRecord
     "alibaba"   => "Alibaba",
     "redhat"    => "RedHat",
     "openstack" => "OpenStack",
+    "otc"       => "Otc",
     "telefonica"=> "Telefonica",
     "huawei"    => "Huawei",
     "orange"    => "Orange",

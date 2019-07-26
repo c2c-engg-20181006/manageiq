@@ -46,12 +46,18 @@ MIQ_WORKER_TYPES = {
   "ManageIQ::Providers::Openstack::CloudManager::EventCatcher"                  => %i(manageiq_default),
   "ManageIQ::Providers::Openstack::CloudManager::MetricsCollectorWorker"        => %i(manageiq_default),
   "ManageIQ::Providers::Openstack::CloudManager::RefreshWorker"                 => %i(manageiq_default),
+  "ManageIQ::Providers::Otc::CloudManager::EventCatcher"                        => %i(manageiq_default),
+  "ManageIQ::Providers::Otc::CloudManager::MetricsCollectorWorker"              => %i(manageiq_default),
+  "ManageIQ::Providers::Otc::CloudManager::RefreshWorker"                       => %i(manageiq_default),
   "ManageIQ::Providers::Openstack::InfraManager::EventCatcher"                  => %i(manageiq_default),
   "ManageIQ::Providers::Openstack::InfraManager::MetricsCollectorWorker"        => %i(manageiq_default),
   "ManageIQ::Providers::Openstack::InfraManager::RefreshWorker"                 => %i(manageiq_default),
   "ManageIQ::Providers::Openstack::NetworkManager::EventCatcher"                => %i(manageiq_default),
   "ManageIQ::Providers::Openstack::NetworkManager::MetricsCollectorWorker"      => %i(manageiq_default),
   "ManageIQ::Providers::Openstack::StorageManager::CinderManager::EventCatcher" => %i(manageiq_default),
+  "ManageIQ::Providers::Otc::NetworkManager::EventCatcher"                      => %i(manageiq_default),
+  "ManageIQ::Providers::Otc::NetworkManager::MetricsCollectorWorker"            => %i(manageiq_default),
+  "ManageIQ::Providers::Otc::StorageManager::CinderManager::EventCatcher"       => %i(manageiq_default),
   "ManageIQ::Providers::Telefonica::CloudManager::EventCatcher"                  => %i(manageiq_default),
   "ManageIQ::Providers::Telefonica::CloudManager::MetricsCollectorWorker"        => %i(manageiq_default),
   "ManageIQ::Providers::Telefonica::CloudManager::RefreshWorker"                 => %i(manageiq_default),
@@ -112,6 +118,8 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Vmware::InfraManager::MetricsCollectorWorker
   ManageIQ::Providers::Openstack::CloudManager::MetricsCollectorWorker
   ManageIQ::Providers::Openstack::NetworkManager::MetricsCollectorWorker
+  ManageIQ::Providers::Otc::CloudManager::MetricsCollectorWorker
+  ManageIQ::Providers::Otc::NetworkManager::MetricsCollectorWorker
   ManageIQ::Providers::Telefonica::CloudManager::MetricsCollectorWorker
   ManageIQ::Providers::Telefonica::NetworkManager::MetricsCollectorWorker
   ManageIQ::Providers::Huawei::CloudManager::MetricsCollectorWorker
@@ -153,6 +161,8 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Redhat::InfraManager::RefreshWorker
   ManageIQ::Providers::Openstack::CloudManager::RefreshWorker
   ManageIQ::Providers::Openstack::NetworkManager::RefreshWorker
+  ManageIQ::Providers::Otc::CloudManager::RefreshWorker
+  ManageIQ::Providers::Otc::NetworkManager::RefreshWorker
   ManageIQ::Providers::Telefonica::CloudManager::RefreshWorker
   ManageIQ::Providers::Telefonica::NetworkManager::RefreshWorker
   ManageIQ::Providers::Huawei::CloudManager::RefreshWorker
@@ -179,6 +189,9 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Openstack::CloudManager::EventCatcher
   ManageIQ::Providers::Openstack::NetworkManager::EventCatcher
   ManageIQ::Providers::Openstack::StorageManager::CinderManager::EventCatcher
+  ManageIQ::Providers::Otc::CloudManager::EventCatcher
+  ManageIQ::Providers::Otc::NetworkManager::EventCatcher
+  ManageIQ::Providers::Otc::StorageManager::CinderManager::EventCatcher
   ManageIQ::Providers::Alibaba::NetworkManager::EventCatcher
   ManageIQ::Providers::Telefonica::CloudManager::EventCatcher
   ManageIQ::Providers::Telefonica::NetworkManager::EventCatcher

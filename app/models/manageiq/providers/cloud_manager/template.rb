@@ -15,6 +15,7 @@ class ManageIQ::Providers::CloudManager::Template < ::MiqTemplate
     super.where(:type => %w(ManageIQ::Providers::Amazon::CloudManager::Template
                             ManageIQ::Providers::Alibaba::CloudManager::Template
                             ManageIQ::Providers::Openstack::CloudManager::Template
+                            ManageIQ::Providers::Otc::CloudManager::Template
                             ManageIQ::Providers::Telefonica::CloudManager::Template
                             ManageIQ::Providers::Huawei::CloudManager::Template
                             ManageIQ::Providers::Orange::CloudManager::Template
@@ -22,6 +23,8 @@ class ManageIQ::Providers::CloudManager::Template < ::MiqTemplate
                             ManageIQ::Providers::Google::CloudManager::Template
                             ManageIQ::Providers::Openstack::CloudManager::VolumeTemplate
                             ManageIQ::Providers::Openstack::CloudManager::VolumeSnapshotTemplate
+                            ManageIQ::Providers::Otc::CloudManager::VolumeTemplate
+                            ManageIQ::Providers::Otc::CloudManager::VolumeSnapshotTemplate
                             ManageIQ::Providers::Telefonica::CloudManager::VolumeTemplate
                             ManageIQ::Providers::Huawei::CloudManager::VolumeTemplate
                             ManageIQ::Providers::Orange::CloudManager::VolumeTemplate

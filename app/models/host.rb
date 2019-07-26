@@ -1382,6 +1382,13 @@ class Host < ApplicationRecord
               Benchmark.realtime_block(:refresh_openstack_services) { refresh_openstack_services(ssu) }
             end
 
+            # refresh_otc_services should run after refresh_services and refresh_fs_files
+            if respond_to?(:refresh_otc_services)
+              _log.info("Refreshing Otc Services for #{log_target}")
+              task.update_status("Active", "Ok", "Refreshing Otc Services") if task
+              Benchmark.realtime_block(:refresh_otc_services) { refresh_otc_services(ssu) }
+            end
+
             #Click2Cloud: refresh_telefonica_services should run after refresh_services and refresh_fs_files
             if respond_to?(:refresh_telefonica_services)
               _log.info("Refreshing Telefonica Services for #{log_target}")

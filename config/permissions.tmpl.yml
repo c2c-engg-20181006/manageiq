@@ -54,6 +54,8 @@
 - ems-type:openstack_network
 - ems-type:telefonica
 - ems-type:telefonica_network
+- ems-type:otc
+- ems-type:otc_network
 - ems-type:huawei
 - ems-type:huawei_network
 - ems-type:redfish_ph_infra

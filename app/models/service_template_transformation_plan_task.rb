@@ -51,7 +51,7 @@ class ServiceTemplateTransformationPlanTask < ServiceTemplateProvisionTask
   # This method returns true if all mappings are ok. It also preload
   #  virtv2v_disks and network_mappings in task options
   def preflight_check
-    raise 'OSP destination and source power_state is off' if destination_ems.emstype == 'openstack' && source.power_state == 'off'
+    raise 'OSP destination and source power_state is off' if (destination_ems.emstype == 'openstack' || destination_ems.emstype == 'otc') && source.power_state == 'off'
     update_options(:source_vm_power_state => source.power_state) # This will determine power_state of destination_vm
     destination_cluster
     virtv2v_disks
@@ -102,6 +102,10 @@ class ServiceTemplateTransformationPlanTask < ServiceTemplateProvisionTask
   end
 
   def destination_network_ref_openstack(network)
+    network.ems_ref
+  end
+
+  def destination_network_ref_otc(network)
     network.ems_ref
   end
 
@@ -323,6 +327,29 @@ class ServiceTemplateTransformationPlanTask < ServiceTemplateProvisionTask
   end
 
   def conversion_options_destination_provider_openstack(cluster, storage)
+    {
+      :osp_environment            => {
+        :os_auth_url             => URI::Generic.build(
+          :scheme => destination_ems.security_protocol == 'non-ssl' ? 'http' : 'https',
+          :host   => destination_ems.hostname,
+          :port   => destination_ems.port,
+          :path   => '/' + destination_ems.api_version
+        ).to_s,
+        :os_identity_api_version => '3',
+        :os_user_domain_name     => destination_ems.uid_ems,
+        :os_username             => destination_ems.authentication_userid,
+        :os_password             => destination_ems.authentication_password,
+        :os_project_name         => conversion_host.resource.cloud_tenant.name
+      },
+      :osp_server_id              => conversion_host.ems_ref,
+      :osp_destination_project_id => cluster.ems_ref,
+      :osp_volume_type_id         => storage.ems_ref,
+      :osp_flavor_id              => destination_flavor.ems_ref,
+      :osp_security_groups_ids    => [destination_security_group.ems_ref]
+    }
+    end
+
+  def conversion_options_destination_provider_otc(cluster, storage)
     {
       :osp_environment            => {
         :os_auth_url             => URI::Generic.build(

@@ -22,6 +22,7 @@ class ServiceTemplate < ApplicationRecord
     "google"                     => N_("Google"),
     "microsoft"                  => N_("SCVMM"),
     "openstack"                  => N_("OpenStack"),
+    "otc"                        => N_("Otc"),
     "telefonica"                 => N_("Telefonica"),
     "orange"                     => N_("Orange"),
     "redhat"                     => N_("Red Hat Virtualization"),
