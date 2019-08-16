@@ -1,5 +1,6 @@
 class MiqReportResult < ApplicationRecord
   include_concern 'Purging'
+  include_concern 'ResultSetOperations'
 
   belongs_to :miq_report
   belongs_to :miq_group
@@ -11,7 +12,7 @@ class MiqReportResult < ApplicationRecord
 
   serialize :report
 
-  virtual_delegate :description, :to => :miq_group, :prefix => true, :allow_nil => true
+  virtual_delegate :description, :to => :miq_group, :prefix => true, :allow_nil => true, :type => :string
   virtual_attribute :status, :string
   virtual_column :status_message,        :type => :string, :uses => :miq_task
   virtual_has_one :result_set,           :class_name => "Hash"
@@ -52,6 +53,14 @@ class MiqReportResult < ApplicationRecord
 
   delegate :table, :to => :report_results, :allow_nil => true
 
+  def result_set_for_reporting(options)
+    self.class.result_set_for_reporting(self, options)
+  end
+
+  def report_or_miq_report
+    report || miq_report
+  end
+
   def friendly_title
     report_source == MiqWidget::WIDGET_REPORT_SOURCE && miq_widget_content ? miq_widget_content.miq_widget.title : report.title
   end
@@ -64,7 +73,16 @@ class MiqReportResult < ApplicationRecord
     if miq_task
       miq_task.human_status
     else
-      report_results.blank? ? "Error" : "Complete"
+      report_results_blank? ? "Error" : "Complete"
+    end
+  end
+
+  # This method doesn't run through all binary blob parts to determine if it has any
+  def report_results_blank?
+    if binary_blob
+      binary_blob.parts.zero?
+    elsif report.kind_of?(MiqReport)
+      report.blank?
     end
   end
 

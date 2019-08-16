@@ -27,7 +27,7 @@ module ManageIQ::Providers
     has_many :cloud_object_store_objects,    :foreign_key => :ems_id, :dependent => :destroy
     has_many :cloud_services,                :foreign_key => :ems_id, :dependent => :destroy
     has_many :cloud_databases,               :foreign_key => :ems_id, :dependent => :destroy
-    has_many :key_pairs,                     :class_name  => "AuthPrivateKey", :as => :resource, :dependent => :destroy
+    has_many :key_pairs,                     :class_name  => "AuthKeyPair", :as => :resource, :dependent => :destroy
     has_many :host_aggregates,               :foreign_key => :ems_id, :dependent => :destroy
     has_one  :source_tenant, :as => :source, :class_name  => 'Tenant'
     has_many :vm_and_template_labels,        :through     => :vms_and_templates, :source => :labels
@@ -35,12 +35,22 @@ module ManageIQ::Providers
     has_many :vm_and_template_taggings,      -> { joins(:tag).merge(Tag.controlled_by_mapping) },
                                              :through     => :vms_and_templates, :source => :taggings
 
+    virtual_has_many :volume_availability_zones, :class_name => "AvailabilityZone", :uses => :availability_zones
+
     validates_presence_of :zone
 
     include HasNetworkManagerMixin
     include HasManyOrchestrationStackMixin
 
     after_destroy :destroy_mapped_tenants
+
+    # These are availability zones that are available to be chosen
+    # when creating a new cloud volume for providers that support it.
+    # By default this is all AZs, individual cloud managers
+    # can override this.
+    def volume_availability_zones
+      availability_zones
+    end
 
     # Development helper method for Rails console for opening a browser to the EMS.
     #
@@ -137,6 +147,10 @@ module ManageIQ::Providers
 
     def create_cloud_tenant(options)
       CloudTenant.create_cloud_tenant(self, options)
+    end
+
+    def valid_service_orchestration_resource
+      true
     end
 
     def self.display_name(number = 1)

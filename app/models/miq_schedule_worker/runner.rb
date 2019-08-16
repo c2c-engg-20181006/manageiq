@@ -136,7 +136,7 @@ class MiqScheduleWorker::Runner < MiqWorker::Runner
 
     # Schedule - Check for retired items and start retirement
     # TODO: remove redundant settings in follow-up pr
-    every = [worker_settings[:service_retired_interval], worker_settings[:vm_retired_interval], worker_settings[:orchestration_stack_retired_interval], worker_settings[:load_balancer_retired_interval]].min
+    every = [worker_settings[:service_retired_interval], worker_settings[:vm_retired_interval], worker_settings[:orchestration_stack_retired_interval]].min
     scheduler.schedule_every(every, :first_in => every) do
       enqueue(:retirement_check)
     end
@@ -220,18 +220,18 @@ class MiqScheduleWorker::Runner < MiqWorker::Runner
 
     # Schedule every 24 hours
     at = worker_settings[:storage_file_collection_time_utc]
-    if Time.now.strftime("%Y-%m-%d #{at}").to_time(:utc) < Time.now.utc
-      time_at = 1.day.from_now.utc.strftime("%Y-%m-%d #{at}").to_time(:utc)
-    else
-      time_at = Time.now.strftime("%Y-%m-%d #{at}").to_time(:utc)
-    end
+    time_at = if Time.zone.today.to_time(:utc) + at.seconds < Time.now.utc
+                Time.zone.today.to_time(:utc) + at.seconds + 1.day
+              else
+                Time.zone.today.to_time(:utc) + at.seconds
+              end
     scheduler.schedule_every(
       worker_settings[:storage_file_collection_interval],
       :first_at => time_at
     ) { enqueue(:storage_scan_timer) }
 
-    schedule_settings_for_ems_refresh.each do |klass, every|
-      scheduler.schedule_every(every, :first_in => every) do
+    schedule_settings_for_ems_refresh.each do |klass, local_every|
+      scheduler.schedule_every(every, :first_in => local_every) do
         enqueue([:ems_refresh_timer, klass])
       end
     end
@@ -303,6 +303,22 @@ class MiqScheduleWorker::Runner < MiqWorker::Runner
       :tags => %i(database_operations database_maintenance_vacuum_schedule),
     ) { enqueue(:database_maintenance_vacuum_timer) }
 
+    every    = worker_settings[:performance_realtime_purging_interval]
+    first_in = worker_settings[:performance_realtime_purging_start_delay]
+    scheduler.schedule_every(
+      every,
+      :first_in => first_in,
+      :tags     => [:database_operations, :purge_realtime_timer]
+    ) { enqueue(:metric_purging_purge_realtime_timer) }
+
+    every    = worker_settings[:performance_rollup_purging_interval]
+    first_in = worker_settings[:performance_rollup_purging_start_delay]
+    scheduler.schedule_every(
+      every,
+      :first_in => first_in,
+      :tags     => [:database_operations, :purge_rollup_timer]
+    ) { enqueue(:metric_purging_purge_rollup_timer) }
+
     @schedules[:database_operations]
   end
 
@@ -318,22 +334,6 @@ class MiqScheduleWorker::Runner < MiqWorker::Runner
       :first_in => first_in,
       :tags     => [:ems_metrics_coordinator, :perf_capture_timer]
     ) { enqueue(:metric_capture_perf_capture_timer) }
-
-    every    = worker_settings[:performance_realtime_purging_interval]
-    first_in = worker_settings[:performance_realtime_purging_start_delay]
-    scheduler.schedule_every(
-      every,
-      :first_in => first_in,
-      :tags     => [:ems_metrics_coordinator, :purge_realtime_timer]
-    ) { enqueue(:metric_purging_purge_realtime_timer) }
-
-    every    = worker_settings[:performance_rollup_purging_interval]
-    first_in = worker_settings[:performance_rollup_purging_start_delay]
-    scheduler.schedule_every(
-      every,
-      :first_in => first_in,
-      :tags     => [:ems_metrics_coordinator, :purge_rollup_timer]
-    ) { enqueue(:metric_purging_purge_rollup_timer) }
 
     @schedules[:ems_metrics_coordinator]
   end

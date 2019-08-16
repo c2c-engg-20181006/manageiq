@@ -24,16 +24,6 @@ class Host < ApplicationRecord
     nil               => "Unknown",
   }.freeze
 
-  HOST_DISCOVERY_TYPES = {
-    'vmware' => 'esx',
-    'ipmi'   => 'ipmi'
-  }.freeze
-
-  HOST_CREATE_OS_TYPES = {
-    'VMware ESX' => 'linux_generic',
-    # 'Microsoft Hyper-V' => 'windows_generic'
-  }.freeze
-
   validates_presence_of     :name
   validates_inclusion_of    :user_assigned_os, :in => ["linux_generic", "windows_generic", nil]
   validates_inclusion_of    :vmm_vendor, :in => VENDOR_TYPES.keys
@@ -117,13 +107,13 @@ class Host < ApplicationRecord
 
   virtual_column :os_image_name,                :type => :string,      :uses => [:operating_system, :hardware]
   virtual_column :platform,                     :type => :string,      :uses => [:operating_system, :hardware]
-  virtual_delegate :v_owning_cluster, :to => "ems_cluster.name", :allow_nil => true, :default => ""
+  virtual_delegate :v_owning_cluster, :to => "ems_cluster.name", :allow_nil => true, :default => "", :type => :string
   virtual_column :v_owning_datacenter,          :type => :string,      :uses => :all_relationships
   virtual_column :v_owning_folder,              :type => :string,      :uses => :all_relationships
-  virtual_delegate :cpu_total_cores, :cpu_cores_per_socket, :to => :hardware, :allow_nil => true, :default => 0
-  virtual_delegate :num_cpu,     :to => "hardware.cpu_sockets",        :allow_nil => true, :default => 0
-  virtual_delegate :total_vcpus, :to => "hardware.cpu_total_cores",    :allow_nil => true, :default => 0
-  virtual_delegate :ram_size,    :to => "hardware.memory_mb",          :allow_nil => true, :default => 0
+  virtual_delegate :cpu_total_cores, :cpu_cores_per_socket, :to => :hardware, :allow_nil => true, :default => 0, :type => :integer
+  virtual_delegate :num_cpu,     :to => "hardware.cpu_sockets",        :allow_nil => true, :default => 0, :type => :integer
+  virtual_delegate :total_vcpus, :to => "hardware.cpu_total_cores",    :allow_nil => true, :default => 0, :type => :integer
+  virtual_delegate :ram_size,    :to => "hardware.memory_mb",          :allow_nil => true, :default => 0, :type => :integer
   virtual_column :enabled_inbound_ports,        :type => :numeric_set  # The following are not set to use anything
   virtual_column :enabled_outbound_ports,       :type => :numeric_set  # because get_ports ends up re-querying the
   virtual_column :enabled_udp_inbound_ports,    :type => :numeric_set  # database anyway.
@@ -139,7 +129,7 @@ class Host < ApplicationRecord
   virtual_column :enabled_run_level_4_services, :type => :string_set,  :uses => :host_services
   virtual_column :enabled_run_level_5_services, :type => :string_set,  :uses => :host_services
   virtual_column :enabled_run_level_6_services, :type => :string_set,  :uses => :host_services
-  virtual_delegate :annotation, :to => :hardware, :prefix => "v", :allow_nil => true
+  virtual_delegate :annotation, :to => :hardware, :prefix => "v", :allow_nil => true, :type => :string
   virtual_column :vmm_vendor_display,           :type => :string
   virtual_column :ipmi_enabled,                 :type => :boolean
   virtual_column :archived, :type => :boolean
@@ -163,7 +153,7 @@ class Host < ApplicationRecord
   self.default_relationship_type = "ems_metadata"
 
   include DriftStateMixin
-  virtual_delegate :last_scan_on, :to => "last_drift_state_timestamp_rec.timestamp", :allow_nil => true
+  virtual_delegate :last_scan_on, :to => "last_drift_state_timestamp_rec.timestamp", :allow_nil => true, :type => :datetime
 
   include UuidMixin
   include MiqPolicyMixin
@@ -213,9 +203,9 @@ class Host < ApplicationRecord
   end
 
   def process_events
-    return unless ems_cluster_id_changed?
+    return unless saved_change_to_ems_cluster_id?
 
-    raise_cluster_event(ems_cluster_id_was, "host_remove_from_cluster") if ems_cluster_id_was
+    raise_cluster_event(ems_cluster_id_before_last_save, "host_remove_from_cluster") if ems_cluster_id_before_last_save
     raise_cluster_event(ems_cluster, "host_add_to_cluster") if ems_cluster_id
   end # after_save
 
@@ -1701,12 +1691,18 @@ class Host < ApplicationRecord
   # Host Discovery Types and Platforms
 
   def self.host_discovery_types
-    HOST_DISCOVERY_TYPES.values
+    # TODO: This feature has been removed, once the UI no longer calls this
+    # method we can delete it
+    []
   end
+  Vmdb::Deprecation.deprecate_methods(self, :host_discovery_types)
 
   def self.host_create_os_types
-    HOST_CREATE_OS_TYPES
+    # TODO: This feature has been removed, once the UI no longer calls this
+    # method we can delete it
+    []
   end
+  Vmdb::Deprecation.deprecate_methods(self, :host_create_os_types)
 
   def has_compliance_policies?
     _, plist = MiqPolicy.get_policies_for_target(self, "compliance", "host_compliance_check")

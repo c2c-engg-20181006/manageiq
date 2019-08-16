@@ -4,6 +4,7 @@ class PhysicalServer < ApplicationRecord
   include TenantIdentityMixin
   include SupportsFeatureMixin
   include EventMixin
+  include ProviderObjectMixin
 
   include_concern 'Operations'
 
@@ -33,6 +34,7 @@ class PhysicalServer < ApplicationRecord
 
   virtual_column :v_availability, :type => :string, :uses => :host
   virtual_column :v_host_os, :type => :string, :uses => :host
+  virtual_delegate :emstype, :to => "ext_management_system", :allow_nil => true
 
   has_many :physical_switches, :through => :computer_system, :source => :connected_physical_switches
 
@@ -109,5 +111,14 @@ class PhysicalServer < ApplicationRecord
 
   def v_host_os
     host.try(:vmm_product).nil? ? N_("") : host.vmm_product
+  end
+
+  def compatible_firmware_binaries
+    FirmwareTarget.find_compatible_with(asset_detail.attributes)&.firmware_binaries || []
+  end
+
+  def firmware_compatible?(firmware_binary)
+    filter = asset_detail.attributes.slice(*FirmwareTarget::MATCH_ATTRIBUTES).transform_values(&:downcase)
+    firmware_binary.firmware_targets.find_by(filter).present?
   end
 end

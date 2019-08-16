@@ -408,7 +408,6 @@ describe Classification do
          :read_only    => "0",
          :syntax       => "string",
          :show         => true,
-         :parent_id    => 0,
          :default      => true,
          :single_value => "1",
          :entries      => [{:description => "Cost Center 001", :name => "001"},
@@ -550,8 +549,8 @@ describe Classification do
     end
 
     it "creates tag with name and ns" do
-      expect(Classification.name2tag("test_entry", 0, parent_ns)).to eq(entry_ns)
-      expect(Classification.name2tag("test_category", 0, root_ns)).to eq(parent_ns)
+      expect(Classification.name2tag("test_entry", nil, parent_ns)).to eq(entry_ns)
+      expect(Classification.name2tag("test_category", nil, root_ns)).to eq(parent_ns)
     end
 
     it "creates tag with name, ns, and parent_id" do
@@ -603,6 +602,15 @@ describe Classification do
       Tag.all.each do |tag|
         expect(tag.name).to eq(Classification.name2tag(tag.classification.name, tag.classification.parent_id))
       end
+    end
+  end
+
+  describe '.tag2human' do
+    let!(:classification) { FactoryBot.create(:classification_department_with_tags) }
+
+    it 'returns a human readible name' do
+      tag = Tag.find_by(:name => "/managed/department/hr")
+      expect(described_class.tag2human(tag.name)).to eq("Department: Human Resources")
     end
   end
 

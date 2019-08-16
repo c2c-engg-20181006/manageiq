@@ -1,4 +1,4 @@
-describe ServiceTemplateTransformationPlanTask do
+RSpec.describe ServiceTemplateTransformationPlanTask, :v2v do
   let(:infra_conversion_job) { FactoryBot.create(:infra_conversion_job) }
 
   describe '.base_model' do
@@ -15,10 +15,12 @@ describe ServiceTemplateTransformationPlanTask do
   end
 
   context 'independent of provider' do
-    let(:src) { FactoryBot.create(:ems_cluster) }
-    let(:dst) { FactoryBot.create(:ems_cluster) }
+    let(:src_ems) { FactoryBot.create(:ems_vmware) }
+    let(:dst_ems) { FactoryBot.create(:ems_openstack, :zone => FactoryBot.create(:zone)) }
+    let(:src) { FactoryBot.create(:ems_cluster, :ext_management_system => src_ems) }
+    let(:dst) { FactoryBot.create(:ems_cluster_openstack, :ext_management_system => dst_ems) }
     let(:host) { FactoryBot.create(:host, :ext_management_system => FactoryBot.create(:ext_management_system, :zone => FactoryBot.create(:zone))) }
-    let(:vm)  { FactoryBot.create(:vm_or_template) }
+    let(:vm) { FactoryBot.create(:vm_or_template) }
     let(:vm2)  { FactoryBot.create(:vm_or_template) }
     let(:apst) { FactoryBot.create(:service_template_ansible_playbook) }
     let(:conversion_host) { FactoryBot.create(:conversion_host, :skip_validate, :resource => host) }
@@ -115,7 +117,7 @@ describe ServiceTemplateTransformationPlanTask do
 
           allow(MiqTask).to receive(:wait_for_taskid) do
             request = MiqQueue.find_by(:class_name => described_class.name)
-            request.update_attributes(:state => MiqQueue::STATE_DEQUEUE)
+            request.update(:state => MiqQueue::STATE_DEQUEUE)
             request.delivered(*request.deliver)
           end
         end
@@ -196,11 +198,12 @@ describe ServiceTemplateTransformationPlanTask do
     describe '#kill_virtv2v' do
       before do
         task.options = {
-          :virtv2v_wrapper    => { 'state_file' => '/tmp/v2v.state', 'pid' => '1234' },
+          :virtv2v_pid        => '1234',
+          :virtv2v_wrapper    => { 'state_file' => '/tmp/v2v.state' },
           :virtv2v_started_on => 1
         }
         task.conversion_host = conversion_host
-        allow(conversion_host).to receive(:get_conversion_state).with(task.options[:virtv2v_wrapper]['state_file']).and_return({})
+        allow(task).to receive(:get_conversion_state).and_return([])
       end
 
       it "returns false if not started" do
@@ -221,8 +224,8 @@ describe ServiceTemplateTransformationPlanTask do
         expect(task.kill_virtv2v('KILL')).to eq(false)
       end
 
-      it "returns false if virtv2v_wrapper.pid is absent" do
-        task.options[:virtv2v_wrapper]['pid'] = nil
+      it "returns false if virtv2v_pid is absent" do
+        task.options[:virtv2v_pid] = nil
         expect(conversion_host).not_to receive(:kill_process)
         expect(task.kill_virtv2v('KILL')).to eq(false)
       end
@@ -240,9 +243,9 @@ describe ServiceTemplateTransformationPlanTask do
   end
 
   context 'populated request and task' do
-    let(:src_ems) { FactoryBot.create(:ext_management_system, :zone => FactoryBot.create(:zone)) }
+    let(:src_ems) { FactoryBot.create(:ems_vmware, :zone => FactoryBot.create(:zone)) }
     let(:src_cluster) { FactoryBot.create(:ems_cluster, :ext_management_system => src_ems) }
-    let(:dst_ems) { FactoryBot.create(:ext_management_system, :zone => FactoryBot.create(:zone)) }
+    let(:dst_ems) { FactoryBot.create(:ems_openstack, :zone => FactoryBot.create(:zone)) }
     let(:dst_cluster) { FactoryBot.create(:ems_cluster, :ext_management_system => dst_ems) }
 
     let(:src_vm_1)  { FactoryBot.create(:vm_or_template, :ext_management_system => src_ems, :ems_cluster => src_cluster) }
@@ -307,31 +310,27 @@ describe ServiceTemplateTransformationPlanTask do
       before do
         allow(Time).to receive(:now).and_return(time_now)
         allow(conversion_host).to receive(:run_conversion).with(task_1.conversion_options).and_return(
-          {
-            "wrapper_log" => "/tmp/wrapper.log",
-            "v2v_log"     => "/tmp/v2v.log",
-            "state_file"  => "/tmp/v2v.state"
-          }
+          "wrapper_log" => "/tmp/wrapper.log",
+          "v2v_log"     => "/tmp/v2v.log",
+          "state_file"  => "/tmp/v2v.state"
         )
       end
 
       it "collects the wrapper state hash" do
         task_1.run_conversion
         expect(task_1.options[:virtv2v_wrapper]).to eq(
-          {
-            "wrapper_log" => "/tmp/wrapper.log",
-            "v2v_log"     => "/tmp/v2v.log",
-            "state_file"  => "/tmp/v2v.state"
-          }
+          "wrapper_log" => "/tmp/wrapper.log",
+          "v2v_log"     => "/tmp/v2v.log",
+          "state_file"  => "/tmp/v2v.state"
         )
-       expect(task_1.options[:virtv2v_started_on]).to eq(time_now.strftime('%Y-%m-%d %H:%M:%S'))
-       expect(task_1.options[:virtv2v_status]).to eq('active')
+        expect(task_1.options[:virtv2v_started_on]).to eq(time_now.strftime('%Y-%m-%d %H:%M:%S'))
+        expect(task_1.options[:virtv2v_status]).to eq('active')
       end
     end
 
     context 'source is vmwarews' do
       let(:src_ems) { FactoryBot.create(:ems_vmware, :zone => FactoryBot.create(:zone)) }
-      let(:src_host) { FactoryBot.create(:host, :ext_management_system => src_ems, :ipaddress => '10.0.0.1') }
+      let(:src_host) { FactoryBot.create(:host_vmware_esx, :ext_management_system => src_ems, :ipaddress => '10.0.0.1') }
       let(:src_storage) { FactoryBot.create(:storage, :ext_management_system => src_ems, :name => 'stockage récent') }
 
       let(:src_lan_1) { FactoryBot.create(:lan) }
@@ -386,21 +385,19 @@ describe ServiceTemplateTransformationPlanTask do
 
         it "raises when conversion is failed" do
           allow(conversion_host).to receive(:get_conversion_state).with(task.options[:virtv2v_wrapper]['state_file']).and_return(
-            {
-              "failed"       => true,
-              "finished"     => true,
-              "started"      => true,
-              "disks"        => [
-                { "path" => src_disk_1.filename, "progress" => 23.0 },
-                { "path" => src_disk_1.filename, "progress" => 0.0 }
-              ],
-              "pid"          => 5855,
-              "return_code"  => 1,
-              "disk_count"   => 2,
-              "last_message" => {
-                "message" => "virt-v2v failed somehow",
-                "type"    => "error"
-              }
+            "failed"       => true,
+            "finished"     => true,
+            "started"      => true,
+            "disks"        => [
+              { "path" => src_disk_1.filename, "progress" => 23.0 },
+              { "path" => src_disk_1.filename, "progress" => 0.0 }
+            ],
+            "pid"          => 5855,
+            "return_code"  => 1,
+            "disk_count"   => 2,
+            "last_message" => {
+              "message" => "virt-v2v failed somehow",
+              "type"    => "error"
             }
           )
           expect { task_1.get_conversion_state }.to raise_error("Disks transformation failed.")
@@ -411,21 +408,19 @@ describe ServiceTemplateTransformationPlanTask do
 
         it "updates disks progress" do
           allow(conversion_host).to receive(:get_conversion_state).with(task.options[:virtv2v_wrapper]['state_file']).and_return(
-            {
-              "started"     => true,
-              "disks"       => [
-                { "path" => src_disk_1.filename, "progress" => 100.0 },
-                { "path" => src_disk_1.filename, "progress" => 50.0 }
-              ],
-              "pid"         => 5855,
-              "disk_count"  => 2
-            }
+            "started"    => true,
+            "disks"      => [
+              { "path" => src_disk_1.filename, "progress" => 100.0 },
+              { "path" => src_disk_1.filename, "progress" => 50.0 }
+            ],
+            "pid"        => 5855,
+            "disk_count" => 2
           )
           task_1.get_conversion_state
           expect(task_1.options[:virtv2v_disks]).to eq(
             [
-              { :path => src_disk_1.filename, :size => disk.size, :percent => 100, :weight  => 50 },
-              { :path => src_disk_2.filename, :size => disk.size, :percent => 50, :weight  => 50 }
+              { :path => src_disk_1.filename, :size => disk.size, :percent => 100, :weight => 50 },
+              { :path => src_disk_2.filename, :size => disk.size, :percent => 50, :weight => 50 }
             ]
           )
           expect(task_1.options[:virtv2v_status]).to eq('active')
@@ -433,17 +428,15 @@ describe ServiceTemplateTransformationPlanTask do
 
         it "sets disks progress to 100% when conversion is finished and successful" do
           allow(conversion_host).to receive(:get_conversion_state).with(task.options[:virtv2v_wrapper]['state_file']).and_return(
-            {
-              "finished"    => true,
-              "started"     => true,
-              "disks"       => [
-                { "path" => src_disk_1.filename, "progress" => 100.0},
-                { "path" => src_disk_1.filename, "progress" => 100.0}
-              ],
-              "pid"         => 5855,
-              "return_code" => 0,
-              "disk_count"  => 1
-            }
+            "finished"    => true,
+            "started"     => true,
+            "disks"       => [
+              { "path" => src_disk_1.filename, "progress" => 100.0},
+              { "path" => src_disk_1.filename, "progress" => 100.0}
+            ],
+            "pid"         => 5855,
+            "return_code" => 0,
+            "disk_count"  => 1
           )
           task_1.get_conversion_state
           expect(task.options[:virtv2v_disks]).to eq(
@@ -509,7 +502,7 @@ describe ServiceTemplateTransformationPlanTask do
 
         it "passes preflight check regardless of power_state" do
           src_vm_1.send(:power_state=, 'anything')
-          expect { task_1.preflight_check }.not_to raise_error
+          expect(task_1.preflight_check).to eq(:status => 'Ok', :message => 'Preflight check is successful')
         end
 
         context "transport method is vddk" do
@@ -605,7 +598,7 @@ describe ServiceTemplateTransformationPlanTask do
 
         it "fails preflight check if src is power off" do
           src_vm_1.send(:power_state=, 'off')
-          expect { task_1.preflight_check }.to raise_error('OSP destination and source power_state is off')
+          expect(task_1.preflight_check).to eq(:status => 'Error', :message => 'OSP destination and source power_state is off')
         end
 
         context "transport method is vddk" do

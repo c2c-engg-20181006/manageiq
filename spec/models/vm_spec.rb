@@ -140,7 +140,6 @@ describe Vm do
       expect(msg.miq_callback).to eq({:class_name => @vm.class.base_class.name, :method_name => :powerops_callback, :instance_id => @vm.id, :args => [task.id]})
       expect(msg.miq_task_id).to eq(task.id)
 
-      allow(Vm).to receive(:start).and_raise(MiqException::MiqVimBrokerUnavailable)
       msg.deliver
     end
 
@@ -284,11 +283,6 @@ describe Vm do
 
   context "#cockpit_url" do
     before do
-      @csv = <<-CSV.gsub(/^\s+/, "")
-        name,description,max_concurrent,external_failover,role_scope
-        cockpit_ws,Cockpit,1,false,zone
-      CSV
-      allow(ServerRole).to receive(:seed_data).and_return(@csv)
       ServerRole.seed
       _, _, @zone = EvmSpecHelper.create_guid_miq_server_zone
       @ems = FactoryBot.create(:ext_management_system, :zone => @zone)
@@ -313,7 +307,7 @@ describe Vm do
   context "#supported_consoles" do
     it 'returns all of the console types' do
       vm = FactoryBot.create(:vm)
-      expect(vm.supported_consoles.keys).to match_array([:spice, :vnc, :vmrc, :webmks, :cockpit])
+      expect(vm.supported_consoles.keys).to match_array([:html5, :vmrc, :cockpit])
     end
   end
 end

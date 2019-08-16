@@ -123,12 +123,8 @@ class MiqReport < ApplicationRecord
     reports.each_with_object({}) { |report, hash| hash[report.name] = report.id }
   end
 
-  def self.get_col_type(path)
-    MiqExpression.get_col_type(path)
-  end
-
   def self.get_col_info(path)
-    data_type = get_col_type(path)
+    data_type = MiqExpression.parse_field_or_tag(path).try(:column_type)
     {
       :data_type         => data_type,
       :available_formats => get_available_formats(path, data_type),
@@ -182,11 +178,22 @@ class MiqReport < ApplicationRecord
     sortby ? col_order.index(sortby.first) : 0
   end
 
-  def column_is_hidden?(col)
+  def column_is_hidden?(col, controller = nil)
     return false unless col_options
 
     @hidden_cols ||= col_options.keys.each_with_object([]) do |c, a|
-      a << c if col_options[c][:hidden]
+      if col_options[c][:hidden]
+        a << c
+      else
+        display_method = col_options[c][:display_method]&.to_sym
+        is_display_method_available = defined?(controller.class::DISPLAY_GTL_METHODS) && controller.class::DISPLAY_GTL_METHODS.include?(display_method) && controller.respond_to?(display_method)
+
+        if controller && display_method && is_display_method_available
+          # when this display_method returns true it means that column is displayed
+          is_column_hidden = !controller.try(display_method)
+          a << c if is_column_hidden
+        end
+      end
     end
 
     @hidden_cols.include?(col.to_s)
@@ -250,6 +257,54 @@ class MiqReport < ApplicationRecord
   def group_description=(_group_description)
     # Stubbed method to handle 'group_description' attr that may be present in the exported hash
     # which does not exist in the MiqReport class
+  end
+
+  def columns_for_sorting(columns)
+    columns = columns.split(",") if columns && columns.kind_of?(String)
+
+    columns || sortby || col_order
+  end
+
+  def validate_sorting_columns(columns)
+    validate_columns(columns_for_sorting(columns))
+  end
+
+  def validate_columns(sorting_columns)
+    Array(sorting_columns).collect do |attr|
+      if col_order&.include?(attr)
+        attr
+      else
+        raise ArgumentError, N_("%{attribute} is not a valid attribute for %{name}") % {:attribute => attr, :name => name}
+      end
+    end.compact
+  end
+
+  def col_format_hash
+    @col_format_hash ||= col_order.zip(col_formats).to_h
+  end
+
+  def format_row(row, allowed_columns = nil, expand_value_format = nil)
+    @tz ||= get_time_zone(Time.zone)
+    row.map do |key, _|
+      value = allowed_columns.nil? || allowed_columns&.include?(key) ? format_column(key, row, @tz, col_format_hash[key]) : row[key]
+      [key, expand_value_format.present? ? { :value => value, :style_class => get_style_class(key, row, @tz) } : value]
+    end.to_h
+  end
+
+  def format_result_set(result_set, skip_columns = nil, hash_value_format = nil)
+    result_set.map { |row| format_row(row, skip_columns, hash_value_format) }
+  end
+
+  def filter_result_set(result_set, options)
+    filter_columns = validate_columns(options[:filter_column])
+    formatted_result_set = format_result_set(result_set, filter_columns)
+    result_set_filtered = formatted_result_set.select { |x| x[options[:filter_column]].include?(options[:filter_string]) }
+
+    [result_set_filtered, result_set_filtered.count]
+  end
+
+  def self.default_use_sql_view
+    ::Settings.reporting.use_sql_view
   end
 
   private

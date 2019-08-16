@@ -17,7 +17,7 @@ describe MiqExpression do
 
     it 'lists custom attributes in ChargebackVm' do
       skip('removing of virtual custom attributes is needed to do first in other specs')
-      
+
       displayed_columms = described_class.reporting_available_fields('ChargebackVm').map(&:second)
       expected_columns = (ChargebackVm.attribute_names - extra_fields).map { |x| "ChargebackVm-#{x}" }
 
@@ -222,6 +222,25 @@ describe MiqExpression do
     end
   end
 
+  describe "#preprocess_for_sql" do
+    it "convert size value in units to integer for comparasing operators on integer field" do
+      expession_hash = {"=" => {"field" => "Vm-allocated_disk_storage", "value" => "5.megabytes"}}
+      expession = MiqExpression.new(expession_hash)
+      exp, _ = expession.preprocess_for_sql(expession_hash)
+      expect(exp.values.first["value"]).to eq("5.megabyte".to_i_with_method)
+
+      expession_hash = {">" => {"field" => "Vm-allocated_disk_storage", "value" => "5.kilobytes"}}
+      expession = MiqExpression.new(expession_hash)
+      exp, _ = expession.preprocess_for_sql(expession_hash)
+      expect(exp.values.first["value"]).to eq("5.kilobytes".to_i_with_method)
+
+      expession_hash = {"<" => {"field" => "Vm-allocated_disk_storage", "value" => "2.terabytes"}}
+      expession = MiqExpression.new(expession_hash)
+      exp, _ = expession.preprocess_for_sql(expession_hash)
+      expect(exp.values.first["value"]).to eq(2.terabytes.to_i_with_method)
+    end
+  end
+
   describe "#to_sql" do
     it "generates the SQL for an EQUAL expression" do
       sql, * = MiqExpression.new("EQUAL" => {"field" => "Vm-name", "value" => "foo"}).to_sql
@@ -360,14 +379,14 @@ describe MiqExpression do
       exp1 = {"STARTS WITH" => {"field" => "Vm-name", "value" => "foo"}}
       exp2 = {"ENDS WITH" => {"field" => "Vm-name", "value" => "bar"}}
       sql, * = MiqExpression.new("AND" => [exp1, exp2]).to_sql
-      expect(sql).to eq("\"vms\".\"name\" LIKE 'foo%' AND \"vms\".\"name\" LIKE '%bar'")
+      expect(sql).to eq("(\"vms\".\"name\" LIKE 'foo%' AND \"vms\".\"name\" LIKE '%bar')")
     end
 
     it "generates the SQL for an AND expression where only one is supported by SQL" do
       exp1 = {"STARTS WITH" => {"field" => "Vm-name", "value" => "foo"}}
       exp2 = {"ENDS WITH" => {"field" => "Vm-platform", "value" => "bar"}}
       sql, * = MiqExpression.new("AND" => [exp1, exp2]).to_sql
-      expect(sql).to eq("\"vms\".\"name\" LIKE 'foo%'")
+      expect(sql).to eq("(\"vms\".\"name\" LIKE 'foo%')")
     end
 
     it "returns nil for an AND expression where none is supported by SQL" do
@@ -398,12 +417,30 @@ describe MiqExpression do
       expect(sql).to be_nil
     end
 
-    it "properly groups the items in an AND/OR expression" do
-      exp = {"AND" => [{"EQUAL" => {"field" => "Vm-power_state", "value" => "on"}},
-                       {"OR" => [{"EQUAL" => {"field" => "Vm-name", "value" => "foo"}},
-                                 {"EQUAL" => {"field" => "Vm-name", "value" => "bar"}}]}]}
-      sql, * = described_class.new(exp).to_sql
-      expect(sql).to eq(%q("vms"."power_state" = 'on' AND ("vms"."name" = 'foo' OR "vms"."name" = 'bar')))
+    context "nested expressions" do
+      it "properly groups the items in an AND/OR expression" do
+        exp = {"AND" => [{"EQUAL" => {"field" => "Vm-power_state", "value" => "on"}},
+                         {"OR" => [{"EQUAL" => {"field" => "Vm-name", "value" => "foo"}},
+                                   {"EQUAL" => {"field" => "Vm-name", "value" => "bar"}}]}]}
+        sql, * = described_class.new(exp).to_sql
+        expect(sql).to eq(%q(("vms"."power_state" = 'on' AND ("vms"."name" = 'foo' OR "vms"."name" = 'bar'))))
+      end
+
+      it "properly groups the items in an OR/AND expression" do
+        exp = {"OR" => [{"EQUAL" => {"field" => "Vm-power_state", "value" => "on"}},
+                        {"AND" => [{"EQUAL" => {"field" => "Vm-name", "value" => "foo"}},
+                                   {"EQUAL" => {"field" => "Vm-name", "value" => "bar"}}]}]}
+        sql, * = described_class.new(exp).to_sql
+        expect(sql).to eq(%q(("vms"."power_state" = 'on' OR ("vms"."name" = 'foo' AND "vms"."name" = 'bar'))))
+      end
+
+      it "properly groups the items in an OR/OR expression" do
+        exp = {"OR" => [{"EQUAL" => {"field" => "Vm-power_state", "value" => "on"}},
+                        {"OR" => [{"EQUAL" => {"field" => "Vm-name", "value" => "foo"}},
+                                  {"EQUAL" => {"field" => "Vm-name", "value" => "bar"}}]}]}
+        sql, * = described_class.new(exp).to_sql
+        expect(sql).to eq(%q(("vms"."power_state" = 'on' OR ("vms"."name" = 'foo' OR "vms"."name" = 'bar'))))
+      end
     end
 
     it "generates the SQL for a NOT expression" do
@@ -948,7 +985,7 @@ describe MiqExpression do
 
   describe "#to_ruby" do
     it "generates the ruby for a = expression with count" do
-      actual = described_class.new("=" => {"count" => "Vm-snapshots", "value" => "1"}).to_ruby
+      actual = described_class.new("=" => {"count" => "Vm.snapshots", "value" => "1"}).to_ruby
       expected = "<count ref=vm>/virtual/snapshots</count> == 1"
       expect(actual).to eq(expected)
     end
@@ -966,7 +1003,7 @@ describe MiqExpression do
     end
 
     it "generates the ruby for a < expression with count" do
-      actual = described_class.new("<" => {"count" => "Vm-snapshots", "value" => "2"}).to_ruby
+      actual = described_class.new("<" => {"count" => "Vm.snapshots", "value" => "2"}).to_ruby
       expected = "<count ref=vm>/virtual/snapshots</count> < 2"
       expect(actual).to eq(expected)
     end
@@ -978,7 +1015,7 @@ describe MiqExpression do
     end
 
     it "generates the ruby for a > expression with count" do
-      actual = described_class.new(">" => {"count" => "Vm-snapshots", "value" => "2"}).to_ruby
+      actual = described_class.new(">" => {"count" => "Vm.snapshots", "value" => "2"}).to_ruby
       expected = "<count ref=vm>/virtual/snapshots</count> > 2"
       expect(actual).to eq(expected)
     end
@@ -990,7 +1027,7 @@ describe MiqExpression do
     end
 
     it "generates the ruby for a >= expression with count" do
-      actual = described_class.new(">=" => {"count" => "Vm-snapshots", "value" => "2"}).to_ruby
+      actual = described_class.new(">=" => {"count" => "Vm.snapshots", "value" => "2"}).to_ruby
       expected = "<count ref=vm>/virtual/snapshots</count> >= 2"
       expect(actual).to eq(expected)
     end
@@ -1002,7 +1039,7 @@ describe MiqExpression do
     end
 
     it "generates the ruby for a <= expression with count" do
-      actual = described_class.new("<=" => {"count" => "Vm-snapshots", "value" => "2"}).to_ruby
+      actual = described_class.new("<=" => {"count" => "Vm.snapshots", "value" => "2"}).to_ruby
       expected = "<count ref=vm>/virtual/snapshots</count> <= 2"
       expect(actual).to eq(expected)
     end
@@ -1014,7 +1051,7 @@ describe MiqExpression do
     end
 
     it "generates the ruby for a != expression with count" do
-      actual = described_class.new("!=" => {"count" => "Vm-snapshots", "value" => "2"}).to_ruby
+      actual = described_class.new("!=" => {"count" => "Vm.snapshots", "value" => "2"}).to_ruby
       expected = "<count ref=vm>/virtual/snapshots</count> != 2"
       expect(actual).to eq(expected)
     end

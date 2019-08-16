@@ -31,6 +31,8 @@
 #   - ems_folders
 #   - resource_pools
 #   - customization_specs
+#   - ems_extensions
+#   - ems_licenses
 #
 #   - link
 #   - orchestration_stacks
@@ -66,6 +68,8 @@ module EmsRefresh::SaveInventoryInfra
       :folders,
       :resource_pools,
       :customization_specs,
+      :ems_extensions,
+      :ems_licenses,
       :orchestration_templates,
       :orchestration_stacks
     ]
@@ -308,6 +312,26 @@ module EmsRefresh::SaveInventoryInfra
     save_inventory_multi(ems.customization_specs, hashes, deletes, [:name])
   end
 
+  def save_ems_extensions_inventory(ems, hashes, target = nil, disconnect = true)
+    target = ems if target.nil?
+
+    ems.ems_extensions.reset
+    deletes = determine_deletes_using_association(ems, target, disconnect)
+
+    save_inventory_multi(ems.ems_extensions, hashes, deletes, [:ems_ref], nil)
+    store_ids_for_new_records(ems.ems_extensions, hashes, :ems_ref)
+  end
+
+  def save_ems_licenses_inventory(ems, hashes, target = nil, disconnect = true)
+    target = ems if target.nil?
+
+    ems.ems_licenses.reset
+    deletes = determine_deletes_using_association(ems, target, disconnect)
+
+    save_inventory_multi(ems.ems_licenses, hashes, deletes, [:ems_ref], nil)
+    store_ids_for_new_records(ems.ems_licenses, hashes, :ems_ref)
+  end
+
   def save_miq_scsi_targets_inventory(guest_device, hashes)
     save_inventory_multi(guest_device.miq_scsi_targets, hashes, :use_association, [:uid_ems], :miq_scsi_luns)
   end
@@ -365,7 +389,7 @@ module EmsRefresh::SaveInventoryInfra
         # host = Host.find_by_hostname(hostname) has a risk of creating duplicate hosts
         # allow a deleted EMS to be re-added an pick up old orphaned hosts
         _log.debug("EMS ID: #{ems_id} Host database lookup - hostname: [#{h[:hostname]}] IP: [#{h[:ipaddress]}] ems_ref: [#{h[:ems_ref]}]")
-        found = look_up_host(h[:hostname], h[:ipaddress], :ems_ref => h[:ems_ref])
+        found = look_up_host(h[:hostname], h[:ipaddress], :ems_id => ems_id)
       end
     end
 
@@ -382,7 +406,7 @@ module EmsRefresh::SaveInventoryInfra
     # we looked-up does not have a different ems_ref and is not
     # owned by another provider, this would cause us to overwrite
     # a different host record
-    if (opts[:ems_ref] && h.ems_ref != opts[:ems_ref]) || (opts[:ems_id] && h.ems_id != opts[:ems_id])
+    if (opts[:ems_ref] && h.ems_ref != opts[:ems_ref]) || (opts[:ems_id] && h.ems_id && h.ems_id != opts[:ems_id])
       h = nil
     end unless h.nil?
 

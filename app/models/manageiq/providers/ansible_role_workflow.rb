@@ -1,46 +1,29 @@
 class ManageIQ::Providers::AnsibleRoleWorkflow < ManageIQ::Providers::AnsibleRunnerWorkflow
-  def self.job_options(env_vars, extra_vars, role_options, timeout, poll_interval)
-    {
-      :env_vars        => env_vars,
-      :extra_vars      => extra_vars,
-      :role_name       => role_options[:role_name],
-      :roles_path      => role_options[:roles_path],
-      :role_skip_facts => role_options[:role_skip_facts],
-      :timeout         => timeout,
-      :poll_interval   => poll_interval
-    }
+  def execution_type
+    "role"
   end
 
-  def pre_role
-    # A step before running the playbook for any optional setup tasks
-    queue_signal(:run_role)
-  end
-
-  def run_role
+  def launch_runner
     env_vars, extra_vars, role_name, roles_path, role_skip_facts = options.values_at(:env_vars, :extra_vars, :role_name, :roles_path, :role_skip_facts)
     role_skip_facts = true if role_skip_facts.nil?
-    response = Ansible::Runner.run_role_async(env_vars, extra_vars, role_name, :roles_path => roles_path, :role_skip_facts => role_skip_facts)
-    if response.nil?
-      queue_signal(:abort, "Failed to run ansible role", "error")
-    else
-      context[:ansible_runner_response] = response.dump
 
-      started_on = Time.now.utc
-      update_attributes!(:context => context, :started_on => started_on)
-      miq_task.update_attributes!(:started_on => started_on)
+    Ansible::Runner.run_role_async(env_vars, extra_vars, role_name, :roles_path => roles_path, :role_skip_facts => role_skip_facts)
+  end
 
-      queue_signal(:poll_runner)
+  private
+
+  def verify_options
+    unless options[:role_name]
+      raise ArgumentError, "must pass :role_name"
+    end
+
+    if !!options[:configuration_script_source_id] ^ !!options[:roles_relative_path]
+      raise ArgumentError, "cannot pass half of a :configuration_script_source_id, :roles_relative_path pair"
     end
   end
 
-  def load_transitions
-    super.tap do |transactions|
-      transactions.merge!(
-        :start    => {'waiting_to_start' => 'pre_role'},
-        :run_role => {'pre_role'         => 'running' },
-      )
-    end
+  def adjust_options_for_git_checkout_tempdir!
+    options[:roles_path] = File.join(options[:git_checkout_tempdir], options[:roles_relative_path])
+    save!
   end
-
-  alias start pre_role
 end

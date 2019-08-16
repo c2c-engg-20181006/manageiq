@@ -9,6 +9,7 @@ class Tenant < ApplicationRecord
   include ActiveVmAggregationMixin
   include CustomActionsMixin
   include TenantQuotasMixin
+  include ExternalUrlMixin
 
   acts_as_miq_taggable
 
@@ -37,6 +38,8 @@ class Tenant < ApplicationRecord
   has_many :shares
   has_many :authentications, :dependent => :nullify
   has_many :miq_product_features, :dependent => :destroy
+  has_many :service_template_tenants, :dependent => :destroy
+  has_many :service_templates, :through => :service_template_tenants, :dependent => :destroy
 
   belongs_to :default_miq_group, :class_name => "MiqGroup", :dependent => :destroy
   belongs_to :source, :polymorphic => true
@@ -49,7 +52,7 @@ class Tenant < ApplicationRecord
   validates :name, :uniqueness => {:scope      => :ancestry,
                                    :conditions => -> { in_my_region },
                                    :message    => "should be unique per parent"}
-  validate :validate_default_tenant, :on => :update, :if => :default_miq_group_id_changed?
+  validate :validate_default_tenant, :on => :update, :if => :saved_change_to_default_miq_group_id?
 
   scope :all_tenants,  -> { where(:divisible => true) }
   scope :all_projects, -> { where(:divisible => false) }
@@ -92,6 +95,18 @@ class Tenant < ApplicationRecord
 
   def regional_tenants
     self.class.regional_tenants(self)
+  end
+
+  def nested_service_templates
+    ServiceTemplate.with_tenant(id)
+  end
+
+  def nested_providers
+    ExtManagementSystem.with_tenant(id)
+  end
+
+  def nested_ae_namespaces
+    MiqAeDomain.with_tenant(id)
   end
 
   def self.regional_tenants(tenant)
@@ -300,27 +315,7 @@ class Tenant < ApplicationRecord
   end
 
   def create_miq_product_features_for_tenant_nodes
-    result = MiqProductFeature.with_tenant_feature_root_features.map.each do |tenant_miq_product_feature|
-      build_miq_product_feature(tenant_miq_product_feature)
-    end.flatten
-
-    result = MiqProductFeature.create(result).map(&:identifier)
-
-    MiqProductFeature.invalidate_caches
-    result
-  end
-
-  def build_miq_product_feature(miq_product_feature)
-    attrs = {
-      :name => miq_product_feature.name, :description => miq_product_feature.description,
-      :feature_type  => 'admin',
-      :hidden        => false,
-      :identifier    => MiqProductFeature.tenant_identifier(miq_product_feature.identifier, id),
-      :tenant_id     => id,
-      :parent_id     => miq_product_feature.id
-    }
-
-    attrs
+    MiqProductFeature.seed_single_tenant_miq_product_features(self)
   end
 
   private

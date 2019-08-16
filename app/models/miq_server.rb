@@ -37,9 +37,11 @@ class MiqServer < ApplicationRecord
   scope :active_miq_servers, -> { where(:status => STATUSES_ACTIVE) }
   scope :recently_active,    -> { where(:last_heartbeat => 10.minutes.ago.utc...Time.now.utc) }
   scope :with_zone_id, ->(zone_id) { where(:zone_id => zone_id) }
-  virtual_delegate :description, :to => :zone, :prefix => true
+  virtual_delegate :description, :to => :zone, :prefix => true, :allow_nil => true, :type => :string
 
   validate :validate_zone_not_maintenance?
+
+  GUID_FILE = Rails.root.join("GUID").freeze
 
   STATUS_STARTING       = 'starting'.freeze
   STATUS_STARTED        = 'started'.freeze
@@ -551,10 +553,20 @@ class MiqServer < ApplicationRecord
   # Zone and Role methods
   #
   def self.my_guid
-    @@my_guid_cache ||= begin
-      guid_file = Rails.root.join("GUID")
-      File.write(guid_file, SecureRandom.uuid) unless File.exist?(guid_file)
-      File.read(guid_file).strip
+    @my_guid_mutex ||= Mutex.new
+    @my_guid_mutex.synchronize { @@my_guid_cache ||= load_or_generate_guid }
+  end
+
+  def self.load_or_generate_guid
+    guid = File.read(GUID_FILE).strip if File.exist?(GUID_FILE)
+    return guid if guid.present?
+
+    SecureRandom.uuid.tap do |guid|
+      _log.info("Generated MiqServer GUID #{guid}")
+      File.open(GUID_FILE, "wb") do |file|
+        file.sync = true
+        file.write(guid)
+      end
     end
   end
 

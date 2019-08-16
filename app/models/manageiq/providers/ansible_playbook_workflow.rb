@@ -1,44 +1,25 @@
 class ManageIQ::Providers::AnsiblePlaybookWorkflow < ManageIQ::Providers::AnsibleRunnerWorkflow
-  def self.job_options(env_vars, extra_vars, playbook_options, timeout, poll_interval)
-    {
-      :env_vars      => env_vars,
-      :extra_vars    => extra_vars,
-      :playbook_path => playbook_options[:playbook_path],
-      :timeout       => timeout,
-      :poll_interval => poll_interval,
-    }
+  def execution_type
+    "playbook"
   end
 
-  def pre_playbook
-    # A step before running the playbook for any optional setup tasks
-    queue_signal(:run_playbook)
-  end
-
-  def run_playbook
+  def launch_runner
     env_vars, extra_vars, playbook_path = options.values_at(:env_vars, :extra_vars, :playbook_path)
+    kwargs = options.slice(:credentials, :hosts, :verbosity, :become_enabled)
 
-    response = Ansible::Runner.run_async(env_vars, extra_vars, playbook_path)
-    if response.nil?
-      queue_signal(:abort, "Failed to run ansible playbook", "error")
-    else
-      context[:ansible_runner_response] = response.dump
+    Ansible::Runner.run_async(env_vars, extra_vars, playbook_path, kwargs)
+  end
 
-      started_on = Time.now.utc
-      update_attributes!(:context => context, :started_on => started_on)
-      miq_task.update_attributes!(:started_on => started_on)
+  private
 
-      queue_signal(:poll_runner)
+  def verify_options
+    if !options[:playbook_path] && !(options[:configuration_script_source_id] && options[:playbook_relative_path])
+      raise ArgumentError, "must pass :playbook_path or a :configuration_script_source_id, :playbook_relative_path pair"
     end
   end
 
-  def load_transitions
-    super.tap do |transactions|
-      transactions.merge!(
-        :start        => {'waiting_to_start' => 'pre_playbook'},
-        :run_playbook => {'pre_playbook'     => 'running'},
-      )
-    end
+  def adjust_options_for_git_checkout_tempdir!
+    options[:playbook_path] = File.join(options[:git_checkout_tempdir], options[:playbook_relative_path])
+    save!
   end
-
-  alias start pre_playbook
 end

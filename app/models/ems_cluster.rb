@@ -1,7 +1,6 @@
 class EmsCluster < ApplicationRecord
   include SupportsFeatureMixin
   include NewWithTypeStiMixin
-  include_concern 'CapacityPlanning'
   include EventMixin
   include TenantIdentityMixin
   include CustomActionsMixin
@@ -22,6 +21,8 @@ class EmsCluster < ApplicationRecord
   has_many    :policy_events, -> { order("timestamp") }
   has_many    :miq_events,         :as => :target,   :dependent => :destroy
   has_many    :miq_alert_statuses, :as => :resource, :dependent => :destroy
+
+  has_many :switches, -> { distinct }, :through => :hosts
 
   virtual_column :v_ram_vr_ratio,      :type => :float,   :uses => [:aggregate_memory, :aggregate_vm_memory]
   virtual_column :v_cpu_vr_ratio,      :type => :float,   :uses => [:aggregate_cpu_total_cores, :aggregate_vm_cpus]
@@ -44,7 +45,7 @@ class EmsCluster < ApplicationRecord
   include FilterableMixin
 
   include DriftStateMixin
-  virtual_delegate :last_scan_on, :to => "last_drift_state_timestamp_rec.timestamp", :allow_nil => true
+  virtual_delegate :last_scan_on, :to => "last_drift_state_timestamp_rec.timestamp", :allow_nil => true, :type => :datetime
 
   include RelationshipMixin
   self.default_relationship_type = "ems_metadata"

@@ -61,11 +61,13 @@ module EvmSpecHelper
     instance.instance_variable_set(ivar, nil)
   end
 
+  def self.stub_as_local_server(server)
+    allow(MiqServer).to receive(:my_guid).and_return(server.guid)
+    MiqServer.my_server_clear_cache
+  end
+
   def self.local_miq_server(attrs = {})
-    remote_miq_server(attrs).tap do |server|
-      allow(MiqServer).to receive(:my_guid).and_return(server.guid)
-      MiqServer.my_server_clear_cache
-    end
+    remote_miq_server(attrs).tap { |server| stub_as_local_server(server) }
   end
 
   def self.local_guid_miq_server_zone
@@ -96,7 +98,14 @@ module EvmSpecHelper
 
   def self.seed_specific_product_features(*features)
     features.flatten!
-    hashes   = YAML.load_file(MiqProductFeature.feature_yaml)
+
+    root_file, other_files = MiqProductFeature.seed_files
+
+    hashes = YAML.load_file(root_file)
+    other_files.each do |f|
+      hashes[:children] += Array.wrap(YAML.load_file(f))
+    end
+
     filtered = filter_specific_features([hashes], features).first
     MiqProductFeature.seed_from_hash(filtered)
     MiqProductFeature.seed_tenant_miq_product_features

@@ -89,15 +89,11 @@ module SupportsFeatureMixin
     :discovery                           => 'Discovery of Managers for a Provider',
     :evacuate                            => 'Evacuation',
     :cockpit_console                     => 'Cockpit Console',
-    :vnc_console                         => 'VNC Console',
-    :mks_console                         => 'MKS Console',
+    :html5_console                       => 'HTML5 Console',
     :vmrc_console                        => 'VMRC Console',
-    :spice_console                       => 'Spice Console',
     :launch_cockpit                      => 'Launch Cockpit UI',
-    :launch_vnc_console                  => 'Launch VNC Console',
+    :launch_html5_console                => 'Launch HTML5 Console',
     :launch_vmrc_console                 => 'Launch VMRC Console',
-    :launch_mks_console                  => 'Launch WebMKS Console',
-    :launch_spice_console                => 'Launch Spice Console',
     :admin_ui                            => 'Open Admin UI for a Provider',
     :live_migrate                        => 'Live Migration',
     :migrate                             => 'Migration',
@@ -147,7 +143,9 @@ module SupportsFeatureMixin
     :vm_import                           => 'VM Import',
     :volume_multiattachment              => 'Volume Multiattachment',
     :volume_resizing                     => 'Volume Resizing',
-    :change_password                     => 'Change Password'
+    :change_password                     => 'Change Password',
+    :volume_availability_zones           => 'Volume Availability Zones',
+    :assume_role                         => 'Assume Role',
   }.freeze
 
   # Whenever this mixin is included we define all features as unsupported by default.

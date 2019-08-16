@@ -49,21 +49,30 @@ describe AutomationRequest do
       expect(ar.options[:attrs][:var2]).to eq(@ae_var2)
       expect(ar.options[:attrs][:var3]).to eq(@ae_var3)
       expect(ar.options[:attrs][:userid]).to eq(admin.userid)
+      expect(ar.options[:schedule_type]).to eq("immediately")
+      expect(ar.options[:schedule_time]).to eq(nil)
     end
 
-    it 'doesnt downcase and stringify objects in the parameters hash' do
+    it "creates request with schedule" do
+      @parameters['schedule_time'] = "10"
+      ar = AutomationRequest.create_from_ws(@version, admin, @uri_parts, @parameters, {})
+
+      expect(ar.options[:schedule_type]).to eq("schedule")
+      expect(ar.options[:schedule_time]).to be_within(1.second).of 10.days.from_now
+    end
+
+    it 'does not downcase and stringify objects in the parameters hash' do
       @object_parameters = {'VmOrTemplate::vm' => 10, 'var2' => @ae_var2.to_s, 'var3' => @ae_var3.to_s}
       ar = AutomationRequest.create_from_ws(@version, admin, @uri_parts, @object_parameters, {})
       expect(ar.options[:attrs]).to include("VmOrTemplate::vm" => 10, :var2 => @ae_var2.to_s)
     end
 
-    it "doesnt allow overriding userid who is NOT in the database" do
+    it "does not allow overriding userid who is NOT in the database" do
       user_name = 'oleg'
 
       expect do
         AutomationRequest.create_from_ws(@version, admin, @uri_parts, @parameters, "user_name" => user_name.to_s)
       end.to raise_error(ActiveRecord::RecordNotFound)
-
     end
 
     it "with requester string overriding userid who is in the database" do
@@ -87,6 +96,7 @@ describe AutomationRequest do
     end
 
     it "with requester string overriding userid AND auto_approval" do
+      FactoryBot.create(:user_admin, :userid => 'admin')
       ar = AutomationRequest.create_from_ws(@version, admin,
                                             @uri_parts, @parameters,
                                             "user_name" => @approver.userid.to_s, 'auto_approve' => 'true')
@@ -109,6 +119,7 @@ describe AutomationRequest do
 
   context ".create_from_scheduled_task" do
     let(:admin) { FactoryBot.create(:user_miq_request_approver) }
+    before { FactoryBot.create(:user_admin, :userid => 'admin') }
 
     it "with prescheduled task" do
       ar = described_class.create_from_scheduled_task(admin, @uri_parts, @parameters)
@@ -230,6 +241,7 @@ describe AutomationRequest do
 
   context "validate zone" do
     before do
+      FactoryBot.create(:user_admin, :userid => 'admin')
       allow_any_instance_of(MiqRequest).to receive(:automate_event_failed?).and_return(false)
     end
 

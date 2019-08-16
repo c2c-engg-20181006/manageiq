@@ -47,19 +47,18 @@ class ServiceTemplate < ApplicationRecord
 
   validates :name, :presence => true
   belongs_to :tenant
-  # # These relationships are used to specify children spawned from a parent service
-  # has_many   :child_services, :class_name => "ServiceTemplate", :foreign_key => :service_template_id
-  # belongs_to :parent_service, :class_name => "ServiceTemplate", :foreign_key => :service_template_id
 
-  # # These relationships are used for resources that are processed as part of the service
-  # has_many   :vms_and_templates, :through => :service_resources, :source => :resource, :source_type => 'VmOrTemplate'
   has_many   :service_templates, :through => :service_resources, :source => :resource, :source_type => 'ServiceTemplate'
   has_many   :services
+
+  has_many :service_template_tenants, :dependent => :destroy
+  has_many :additional_tenants, :through => :service_template_tenants, :source => :tenant, :dependent => :destroy
 
   has_one :picture, :dependent => :destroy, :as => :resource, :autosave => true
 
   belongs_to :service_template_catalog
   belongs_to :zone
+  belongs_to :currency, :class_name => "ChargebackRateDetailCurrency", :inverse_of => false
 
   has_many   :dialogs, -> { distinct }, :through => :resource_actions
   has_many   :miq_schedules, :as => :resource, :dependent => :destroy
@@ -84,6 +83,15 @@ class ServiceTemplate < ApplicationRecord
   scope :with_existent_service_template_catalog_id, ->         { where.not(:service_template_catalog_id => nil) }
   scope :displayed,                                 ->         { where(:display => true) }
   scope :public_service_templates,                  ->         { where(:internal => [false, nil]) }
+
+  def self.with_tenant(tenant_id)
+    tenant = Tenant.find(tenant_id)
+    where(:tenant_id => tenant.ancestor_ids + [tenant_id])
+  end
+
+  def self.with_additional_tenants
+    includes(:service_template_tenants => :tenant)
+  end
 
   def self.catalog_item_types
     ci_types = Set.new(Rbac.filtered(ExtManagementSystem.all).flat_map(&:supported_catalog_types))
@@ -153,8 +161,7 @@ class ServiceTemplate < ApplicationRecord
   end
 
   def destroy
-    parent_svcs = parent_services
-    unless parent_svcs.blank?
+    if parent_services.present?
       raise MiqException::MiqServiceError, _("Cannot delete a service that is the child of another service.")
     end
 
@@ -202,7 +209,7 @@ class ServiceTemplate < ApplicationRecord
 
     nh['initiator'] = service_task.options[:initiator] if service_task.options[:initiator]
 
-    service = Service.create(nh) do |svc|
+    service = Service.create!(nh) do |svc|
       svc.service_template = self
       set_ownership(svc, service_task.get_user)
 
@@ -381,7 +388,7 @@ class ServiceTemplate < ApplicationRecord
   end
 
   def self.create_from_options(options)
-    create(options.except(:config_info).merge(:options => { :config_info => options[:config_info] }))
+    create!(options.except(:config_info).merge(:options => { :config_info => options[:config_info] }))
   end
   private_class_method :create_from_options
 
@@ -390,6 +397,14 @@ class ServiceTemplate < ApplicationRecord
     result = order(user, options, request_options)
     raise result[:errors].join(", ") if result[:errors].any?
     result[:request]
+  end
+
+  def picture=(value)
+    if value.kind_of?(Hash)
+      super(Picture.new(value))
+    else
+      super
+    end
   end
 
   def queue_order(user_id, options, request_options)
@@ -436,10 +451,6 @@ class ServiceTemplate < ApplicationRecord
     ResourceActionWorkflow.new(dialog_options, user, provision_action, ra_options).tap do |wf|
       wf.request_options = request_options
     end
-  end
-
-  def dup
-    super.tap { |obj| obj.guid = nil }
   end
 
   def add_resource(rsc, options = {})
@@ -514,23 +525,19 @@ class ServiceTemplate < ApplicationRecord
 
   def construct_config_info
     config_info = {}
-    if service_resources.where(:resource_type => 'MiqRequest').exists?
-      config_info.merge!(service_resources.find_by(:resource_type => 'MiqRequest').resource.options.compact)
-    end
+
+    miq_request_resource = service_resources.find_by(:resource_type => 'MiqRequest')
+    config_info.merge!(miq_request_resource.resource.options.compact) if miq_request_resource
 
     config_info.merge!(resource_actions_info)
   end
 
   def resource_actions_info
-    config_info = {}
-    resource_actions.each do |resource_action|
-      resource_options = resource_action.slice(:dialog_id,
-                                               :configuration_template_type,
-                                               :configuration_template_id).compact
+    resource_actions.each_with_object({}) do |resource_action, config_info|
+      resource_options = resource_action.slice(:dialog_id, :configuration_template_type, :configuration_template_id).compact
       resource_options[:fqname] = resource_action.fqname
       config_info[resource_action.action.downcase.to_sym] = resource_options.symbolize_keys
     end
-    config_info
   end
 
   def generic_custom_buttons
@@ -538,14 +545,6 @@ class ServiceTemplate < ApplicationRecord
   end
 
   def adjust_service_type
-    svc_type = self.class::SERVICE_TYPE_ATOMIC
-    service_resources.try(:each) do |sr|
-      if sr.resource_type == 'Service' || sr.resource_type == 'ServiceTemplate'
-        svc_type = self.class::SERVICE_TYPE_COMPOSITE
-        break
-      end
-    end
-
-    self.service_type = svc_type
+    self.service_type = service_resources.any? { |st| st.resource_type.in?(['Service', 'ServiceTemplate']) } ? self.class::SERVICE_TYPE_COMPOSITE : self.class::SERVICE_TYPE_ATOMIC
   end
 end

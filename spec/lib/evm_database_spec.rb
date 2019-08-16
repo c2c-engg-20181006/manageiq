@@ -42,6 +42,13 @@ describe EvmDatabase do
     it "will fail if a class does not respond to .seed" do
       expect { described_class.seed(["VmOrTemplate"]) }.to raise_error(ArgumentError, /do not respond to seed/)
     end
+
+    # this spec takes about 30 seconds but is the only check that db:seed won't fail
+    it "doesn't fail" do
+      expect do
+        described_class.seed
+      end.not_to raise_error
+    end
   end
 
   describe ".seed_primordial" do
@@ -155,7 +162,7 @@ describe EvmDatabase do
       expect(h.environment).to eq("test")
     end
 
-    it "adds a pglogical config handler for every subscription when our server has the database_operations role" do
+    it "adds a logical replication config handler for every subscription when our server has the database_operations role" do
       ServerRole.seed
       server.role = "database_operations"
       server.activate_all_roles
@@ -164,7 +171,7 @@ describe EvmDatabase do
       handlers = monitor.config_handlers.map(&:first)
 
       expect(handlers.count).to eq(3)
-      handlers.delete_if { |h| h.kind_of?(ManageIQ::PostgresHaAdmin::RailsConfigHandler) }
+      handlers.select! { |h| h.kind_of?(ManageIQ::PostgresHaAdmin::LogicalReplicationConfigHandler) }
       expect(handlers.count).to eq(2)
       expect(%w(sub_id_1 sub_id_2)).to include(handlers.first.subscription)
       expect(%w(sub_id_1 sub_id_2)).to include(handlers.last.subscription)

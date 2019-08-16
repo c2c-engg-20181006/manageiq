@@ -1,4 +1,3 @@
-require 'rugged'
 require_relative 'git_worktree_exception'
 
 class GitWorktree
@@ -8,20 +7,28 @@ class GitWorktree
   LOCK_REFERENCE = 'refs/locks'
 
   def initialize(options = {})
+    require 'rugged'
+
     raise ArgumentError, "Must specify path" unless options.key?(:path)
-    @path          = options[:path]
-    @email         = options[:email]
-    @username      = options[:username] || ""
-    @bare          = options[:bare]
-    @commit_sha    = options[:commit_sha]
-    @password      = options[:password] || ""
-    @fast_forward_merge = options[:ff] || true
-    @remote_name   = 'origin'
-    @cred          = Rugged::Credentials::UserPassword.new(:username => @username,
-                                                           :password => @password)
-    @credentials_set = false
-    @base_name = File.basename(@path)
+
+    @path                 = options[:path]
+    @email                = options[:email]
+    @username             = options[:username]
+    @bare                 = options[:bare]
+    @commit_sha           = options[:commit_sha]
+    @password             = options[:password]
+    @ssh_private_key      = options[:ssh_private_key]
+    @fast_forward_merge   = options[:ff] || true
+    @proxy_url            = options[:proxy_url]
     @certificate_check_cb = options[:certificate_check]
+
+    @remote_name = 'origin'
+    @base_name   = File.basename(@path)
+
+    if @ssh_private_key && !Rugged.features.include?(:ssh)
+      raise GitWorktreeException::InvalidCredentialType, "ssh credentials are not enabled for use. Recompile the rugged/libgit2 gem with ssh support to enable it."
+    end
+
     process_repo(options)
   end
 
@@ -36,14 +43,20 @@ class GitWorktree
     where.nil? ? @repo.branches.each_name.sort : @repo.branches.each_name(where).sort
   end
 
+  private def find_branch(name)
+    @repo.branches.each.detect do |b|
+      b.name.casecmp(name) == 0 || b.name.casecmp("#{@remote_name}/#{name}") == 0
+    end
+  end
+
   def branch=(name)
-    branch = @repo.branches.each.detect { |b| b.name.casecmp(name) == 0 }
+    branch = find_branch(name)
     raise GitWorktreeException::BranchMissing, name unless branch
     @commit_sha = branch.target.oid
   end
 
   def branch_info(name)
-    branch = @repo.branches.each.detect { |b| b.name.casecmp(name) == 0 }
+    branch = find_branch(name)
     raise GitWorktreeException::BranchMissing, name unless branch
     {:time => branch.target.time, :message => branch.target.message, :commit_sha => branch.target.oid}
   end
@@ -52,16 +65,38 @@ class GitWorktree
     @repo.tags.each.collect(&:name)
   end
 
+  private def find_tag(name)
+    @repo.tags.each.detect { |t| t.name.casecmp(name) == 0 }
+  end
+
   def tag=(name)
-    tag = @repo.tags.each.detect { |t| t.name.casecmp(name) == 0 }
+    tag = find_tag(name)
     raise GitWorktreeException::TagMissing, name unless tag
     @commit_sha = tag.target.oid
   end
 
   def tag_info(name)
-    tag = @repo.tags.each.detect { |t| t.name.casecmp(name) == 0 }
+    tag = find_tag(name)
     raise GitWorktreeException::TagMissing, name unless tag
     {:time => tag.target.time, :message => tag.target.message, :commit_sha => tag.target.oid}
+  end
+
+  private def find_ref(ref)
+    @repo.lookup(ref)
+  rescue Rugged::InvalidError, Rugged::OdbError
+    nil
+  end
+
+  def ref=(ref)
+    if find_branch(ref)
+      self.branch = ref
+    elsif find_tag(ref)
+      self.tag = ref
+    elsif find_ref(ref)
+      @commit_sha = @repo.lookup(ref).oid
+    else
+      raise GitWorktreeException::RefMissing, ref
+    end
   end
 
   def add(path, data, default_entry_keys = {})
@@ -138,6 +173,16 @@ class GitWorktree
     tree.walk(:preorder).collect { |root, entry| "#{root}#{entry[:name]}" }
   end
 
+  # Like "file_list", but doesn't return directories
+  def blob_list
+    tree = lookup_commit_tree
+    return [] unless tree
+
+    [].tap do |blobs|
+      tree.walk_blobs(:preorder) { |root, entry| blobs << "#{root}#{entry[:name]}" }
+    end
+  end
+
   def find_entry(path)
     get_tree_entry(path)
   end
@@ -167,16 +212,51 @@ class GitWorktree
     current_index.remove_dir(old_dir)
   end
 
-  def credentials_cb(url, _username, _types)
-    if @credentials_set
-      raise GitWorktreeException::InvalidCredentials, "Please provide username and password for URL #{url}" if @username.blank? || @password.blank?
-      raise GitWorktreeException::InvalidCredentials, "Invalid credentials for URL #{url}"
+  def checkout(target_directory)
+    tree = lookup_commit_tree
+    @repo.checkout_tree(tree, :target_directory => target_directory, :strategy => :force)
+  end
+
+  def with_remote_options
+    if @ssh_private_key
+      @ssh_private_key_file = Tempfile.new
+      @ssh_private_key_file.write(@ssh_private_key)
+      @ssh_private_key_file.close
     end
-    @credentials_set = true
-    @cred
+
+    options = {:credentials => method(:credentials_cb), :proxy_url => @proxy_url}
+    options[:certificate_check] = @certificate_check_cb if @certificate_check_cb
+
+    yield options
+  ensure
+    if @ssh_private_key_file
+      @ssh_private_key_file.unlink
+      @ssh_private_key_file = nil
+    end
   end
 
   private
+
+  def credentials_cb(url, username_from_url, _allowed_types)
+    username = @username || username_from_url
+
+    if @ssh_private_key_file
+      raise GitWorktreeException::InvalidCredentials, "Please provide username for URL #{url}" if username.blank?
+
+      Rugged::Credentials::SshKey.new(
+        :username   => username,
+        :privatekey => @ssh_private_key_file.path,
+        :passphrase => @password.presence
+      )
+    else
+      raise GitWorktreeException::InvalidCredentials, "Please provide username and password for URL #{url}" if @username.blank? || @password.blank?
+
+      Rugged::Credentials::UserPassword.new(
+        :username => @username,
+        :password => @password
+      )
+    end
+  end
 
   def current_branch
     @repo.head_unborn? ? 'master' : @repo.head.name.sub(/^refs\/heads\//, '')
@@ -197,9 +277,9 @@ class GitWorktree
   end
 
   def fetch
-    @credentials_set = false
-    options = {:credentials => method(:credentials_cb), :certificate_check => @certificate_check_cb}
-    @repo.fetch(@remote_name, options)
+    with_remote_options do |remote_options|
+      @repo.fetch(@remote_name, remote_options)
+    end
   end
 
   def pull
@@ -212,8 +292,9 @@ class GitWorktree
       @saved_cid = @repo.ref(local_ref).target.oid
       merge(commit, rebase)
       rebase = true
-      @credentials_set = false
-      @repo.push(@remote_name, [local_ref], :credentials => method(:credentials_cb))
+      with_remote_options do |remote_options|
+        @repo.push(@remote_name, [local_ref], remote_options)
+      end
     end
   end
 
@@ -266,9 +347,10 @@ class GitWorktree
   end
 
   def clone(url)
-    @credentials_set = false
-    options = {:credentials => method(:credentials_cb), :bare => true, :remote => @remote_name, :certificate_check => @certificate_check_cb}
-    @repo = Rugged::Repository.clone_at(url, @path, options)
+    @repo = with_remote_options do |remote_options|
+      options = remote_options.merge(:bare => true, :remote => @remote_name)
+      Rugged::Repository.clone_at(url, @path, options)
+    end
   end
 
   def fetch_entry(path)
@@ -322,7 +404,7 @@ class GitWorktree
   end
 
   def create_commit(message, tree, parents)
-    author = {:email => @email, :name => @username, :time => Time.now}
+    author = {:email => @email, :name => @username || @email, :time => Time.now}
     # Create the actual commit but dont update the reference
     Rugged::Commit.create(@repo, :author  => author,  :committer  => author,
                                  :message => message, :parents    => parents,

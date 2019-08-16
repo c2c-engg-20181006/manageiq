@@ -1,5 +1,7 @@
 class Authentication < ApplicationRecord
   acts_as_miq_taggable
+  include_concern 'ImportExport'
+  include YAMLImportExportMixin
 
   include NewWithTypeStiMixin
   def self.new(*args, &block)
@@ -12,6 +14,8 @@ class Authentication < ApplicationRecord
 
   include PasswordMixin
   encrypt_column :auth_key
+  encrypt_column :auth_key_password
+  encrypt_column :become_password
   encrypt_column :password
   encrypt_column :service_account
 

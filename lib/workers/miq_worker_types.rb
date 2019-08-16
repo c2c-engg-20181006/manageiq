@@ -12,8 +12,9 @@ MIQ_WORKER_TYPES = {
   "ManageIQ::Providers::Azure::CloudManager::EventCatcher"                      => %i(manageiq_default),
   "ManageIQ::Providers::Azure::CloudManager::MetricsCollectorWorker"            => %i(manageiq_default),
   "ManageIQ::Providers::Azure::CloudManager::RefreshWorker"                     => %i(manageiq_default),
-  "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::EventCatcher"       => %i(manageiq_default),
-  "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::RefreshWorker"      => %i(manageiq_default),
+  "ManageIQ::Providers::AzureStack::CloudManager::EventCatcher"                 => %i[manageiq_default],
+  "ManageIQ::Providers::AzureStack::CloudManager::RefreshWorker"                => %i[manageiq_default],
+  "ManageIQ::Providers::AzureStack::NetworkManager::RefreshWorker"              => %i[manageiq_default],
   "ManageIQ::Providers::Foreman::ConfigurationManager::RefreshWorker"           => %i(manageiq_default),
   "ManageIQ::Providers::Foreman::ProvisioningManager::RefreshWorker"            => %i(manageiq_default),
   "ManageIQ::Providers::Google::CloudManager::EventCatcher"                     => %i(manageiq_default),
@@ -59,7 +60,6 @@ MIQ_WORKER_TYPES = {
   "ManageIQ::Providers::Vmware::InfraManager::MetricsCollectorWorker"           => %i(manageiq_default),
   "ManageIQ::Providers::Vmware::InfraManager::RefreshWorker"                    => %i(manageiq_default),
   "ManageIQ::Providers::Vmware::NetworkManager::RefreshWorker"                  => %i(manageiq_default),
-  "EmbeddedAnsibleWorker"                                                       => %i(manageiq_default),
   "MiqCockpitWsWorker"                                                          => %i(manageiq_default),
   "MiqEmsMetricsProcessorWorker"                                                => %i(manageiq_default),
   "MiqEmsRefreshCoreWorker"                                                     => %i(manageiq_default),
@@ -88,13 +88,14 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Openstack::NetworkManager::MetricsCollectorWorker
   ManageIQ::Providers::Redhat::NetworkManager::MetricsCollectorWorker
   ManageIQ::Providers::Openstack::InfraManager::MetricsCollectorWorker
-  EmbeddedAnsibleWorker
   MiqReportingWorker
   MiqSmartProxyWorker
   MiqGenericWorker
   MiqEventHandler
   ManageIQ::Providers::Azure::CloudManager::RefreshWorker
   ManageIQ::Providers::Azure::NetworkManager::RefreshWorker
+  ManageIQ::Providers::AzureStack::CloudManager::RefreshWorker
+  ManageIQ::Providers::AzureStack::NetworkManager::RefreshWorker
   ManageIQ::Providers::Amazon::CloudManager::RefreshWorker
   ManageIQ::Providers::Amazon::NetworkManager::RefreshWorker
   ManageIQ::Providers::Amazon::StorageManager::Ebs::RefreshWorker
@@ -103,7 +104,6 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Google::CloudManager::RefreshWorker
   ManageIQ::Providers::Google::NetworkManager::RefreshWorker
   ManageIQ::Providers::AnsibleTower::AutomationManager::RefreshWorker
-  ManageIQ::Providers::EmbeddedAnsible::AutomationManager::RefreshWorker
   ManageIQ::Providers::Foreman::ConfigurationManager::RefreshWorker
   ManageIQ::Providers::Foreman::ProvisioningManager::RefreshWorker
   ManageIQ::Providers::Kubernetes::ContainerManager::InventoryCollectorWorker
@@ -141,8 +141,8 @@ MIQ_WORKER_TYPES_IN_KILL_ORDER = %w(
   ManageIQ::Providers::Openstack::InfraManager::EventCatcher
   ManageIQ::Providers::Amazon::CloudManager::EventCatcher
   ManageIQ::Providers::Azure::CloudManager::EventCatcher
+  ManageIQ::Providers::AzureStack::CloudManager::EventCatcher
   ManageIQ::Providers::AnsibleTower::AutomationManager::EventCatcher
-  ManageIQ::Providers::EmbeddedAnsible::AutomationManager::EventCatcher
   ManageIQ::Providers::Google::CloudManager::EventCatcher
   ManageIQ::Providers::Kubernetes::ContainerManager::EventCatcher
   ManageIQ::Providers::Kubernetes::MonitoringManager::EventCatcher

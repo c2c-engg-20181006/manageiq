@@ -10,8 +10,8 @@ Vmdb::Application.configure do
   config.cache_classes = true
   config.eager_load = false
 
-  # Print deprecation notices to the stderr
-  #ActiveSupport::Deprecation.behavior = :stderr
+  # Print deprecation notices to the stderr.
+  config.active_support.deprecation = :stderr
 
   # Configure static asset server for tests with Cache-Control for performance
   config.public_file_server.enabled = true
@@ -22,7 +22,7 @@ Vmdb::Application.configure do
     env.cache = ActiveSupport::Cache.lookup_store(:memory_store)
   end
 
-  config.assets.compile = ENV['TEST_SUITE'] == 'spec:javascript'
+  config.assets.compile = true
 
   # Log error messages when you accidentally call methods on nil
   config.whiny_nils = true
@@ -66,3 +66,10 @@ require "timecop"
 require "vcr"
 require "webmock/rspec"
 require "capybara"
+
+module AssumeAssetPrecompiledInTest
+  def asset_precompiled?(_logical_path)
+    true
+  end
+end
+Vmdb::Application.prepend(AssumeAssetPrecompiledInTest)

@@ -129,23 +129,6 @@
   :history:
     :keep_drift_states: 6.months
     :purge_window_size: 10000
-:embedded_ansible:
-  :job_data_retention_days: 120
-  :docker:
-    :task_image_name: ansible/awx_task
-    :task_image_tag: latest
-    :web_image_name: ansible/awx_web
-    :web_image_tag: latest
-    :rabbitmq_image_name: rabbitmq
-    :rabbitmq_image_tag: 3
-    :setup_wait_seconds: 1200
-    :memcached_image_name: memcached
-    :memcached_image_tag: alpine
-  :container:
-    :image_name: manageiq/embedded-ansible
-    :image_tag: latest
-    :service_account: miq-privileged
-    :setup_wait_seconds: 1200
 :ems:
 # provider specific settings are nested here, but they are in the provider repos
 # e.g.:
@@ -161,12 +144,6 @@
   :ansible_tower_automation:
     :inventory_object_refresh: true
     :allow_targeted_refresh: true
-    :refresh_interval: 15.minutes
-  :embedded_ansible_automation:
-    :inventory_object_refresh: true
-    :allow_targeted_refresh: true
-    :inventory_collections:
-      :saver_strategy: batch
     :refresh_interval: 15.minutes
   :foreman_configuration:
     :refresh_interval: 15.minutes
@@ -857,6 +834,13 @@
     - MoveIntoResourcePool
     :VmSuspendedEvent:
     - SuspendVM_Task
+:git_repository_proxy:
+  :host:
+  :password:
+  :port:
+  :user:
+  :scheme:
+  :path:
 :help_menu:
   :documentation:
     :type: default
@@ -891,12 +875,6 @@
     :port:
     :user:
     :scheme:
-  :embedded_ansible:
-    :host:
-    :password:
-    :port:
-    :user:
-    :scheme:
 :log:
   :collection:
     :include_automate_models_and_dialogs: true
@@ -923,6 +901,7 @@
   :level_rails: info
   :level_api: info
   :level_automation: info
+  :level_azure_stack: info
   :level_cn_monitoring: info
   :level_fog: info
   :level_mw: info
@@ -1001,6 +980,7 @@
     :keep_reports: 6.months
     :purge_window_size: 100
   :queue_timeout: 1.hour
+  :use_sql_view: false
 :repository_scanning:
   :defaultsmartproxy:
 :server:
@@ -1031,7 +1011,6 @@
   :prefetch_min_per_worker_dequeue: 10
   :prefetch_stale_threshold: 30.seconds
   :rails_server: puma
-  :remote_console_type: VMRC
   :role: database_operations,event,reporting,scheduler,smartstate,ems_operations,ems_inventory,user_interface,remote_console,web_services,automate
   :server_dequeue_frequency: 5.seconds
   :server_log_frequency: 5.minutes
@@ -1146,14 +1125,9 @@
       :poll: 3.seconds
       :poll_escalate_max: 30.seconds
       :poll_method: :normal
-      :restart_interval: 0.hours
       :starting_timeout: 10.minutes
       :stopping_timeout: 10.minutes
-    :embedded_ansible_worker:
-      :starting_timeout: 20.minutes
-      :poll: 10.seconds
-      :memory_threshold: 0.megabytes
-      :sync_provider_with_server_interval: 1.minute
+      :systemd_enabled: false
     :agent_coordinator_worker:
       :heartbeat_timeout: 30.minutes
       :poll: 30.seconds
@@ -1175,8 +1149,6 @@
         :nice_delta: 1
         :poll: 1.seconds
       :event_catcher_ansible_tower:
-        :poll: 20.seconds
-      :event_catcher_embedded_ansible:
         :poll: 20.seconds
       :event_catcher_google:
         :poll: 15.seconds
@@ -1210,10 +1182,8 @@
           :poll: 10.seconds
           :poll_method: :normal
           :queue_timeout: 120.minutes
-          :restart_interval: 2.hours
           :dequeue_method: :sql
         :ems_refresh_worker_ansible_tower_automation: {}
-        :ems_refresh_worker_embedded_ansible_automation: {}
         :ems_refresh_worker_foreman_configuration: {}
         :ems_refresh_worker_foreman_provisioning: {}
         :ems_refresh_worker_google: {}
@@ -1239,7 +1209,6 @@
         :count: 2
         :memory_threshold: 2.gigabytes
         :queue_timeout: 20.minutes
-        :restart_interval: 6.hours
         :heartbeat_thread_shutdown_timeout: 10.seconds
     :schedule_worker:
       :container_entities_purge_interval: 1.day
@@ -1256,7 +1225,6 @@
       :job_proxy_dispatcher_stale_message_check_interval: 60.seconds
       :job_proxy_dispatcher_stale_message_timeout: 2.minutes
       :job_timeout_interval: 60.seconds
-      :load_balancer_retired_interval: 10.minutes
       :log_active_configuration_interval: 1.days
       :log_database_statistics_interval: 1.days
       :memory_threshold: 500.megabytes

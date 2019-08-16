@@ -35,6 +35,10 @@ FactoryBot.define do
     status      { "SomeMockedStatus" }
   end
 
+  factory :authentication_v2v, :parent => :authentication_ssh_keypair do
+    authtype    { "v2v" }
+  end
+
   factory :authentication_redhat_metric, :parent => :authentication do
     authtype { "metrics" }
   end
@@ -79,6 +83,14 @@ FactoryBot.define do
           :parent => :embedded_ansible_credential,
           :class  => "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::AmazonCredential"
 
+  factory :embedded_ansible_azure_credential,
+          :parent => :embedded_ansible_credential,
+          :class  => "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::AzureCredential"
+
+  factory :embedded_ansible_google_credential,
+          :parent => :embedded_ansible_credential,
+          :class  => "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::GoogleCredential"
+
   factory :embedded_ansible_machine_credential,
           :parent => :embedded_ansible_credential,
           :class  => "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::MachineCredential"
@@ -87,9 +99,29 @@ FactoryBot.define do
           :parent => :embedded_ansible_credential,
           :class  => "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::VaultCredential"
 
+  factory :embedded_ansible_cloud_credential,
+          :parent => :embedded_ansible_credential,
+          :class  => "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::CloudCredential"
+
+  factory :embedded_ansible_openstack_credential,
+          :parent => :embedded_ansible_credential,
+          :class  => "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::OpenstackCredential"
+
+  factory :embedded_ansible_rhv_credential,
+          :parent => :embedded_ansible_credential,
+          :class  => "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::RhvCredential"
+
   factory :embedded_ansible_scm_credential,
           :parent => :embedded_ansible_credential,
           :class  => "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::ScmCredential"
+
+  factory :embedded_ansible_vmware_credential,
+          :parent => :embedded_ansible_credential,
+          :class  => "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::VmwareCredential"
+
+  factory :embedded_ansible_network_credential,
+          :parent => :embedded_ansible_credential,
+          :class  => "ManageIQ::Providers::EmbeddedAnsible::AutomationManager::NetworkCredential"
 
   factory :auth_key_pair_cloud,     :class => "ManageIQ::Providers::CloudManager::AuthKeyPair"
   factory :auth_key_pair_amazon,    :class => "ManageIQ::Providers::Amazon::CloudManager::AuthKeyPair"

@@ -371,7 +371,7 @@ describe MiqQueue do
     end
 
     it "should skip putting message on queue in maintenance zone" do
-      msg = MiqQueue.put(
+      MiqQueue.put(
         :class_name  => 'MyClass',
         :method_name => 'method1',
         :args        => [1, 2],
@@ -718,6 +718,16 @@ describe MiqQueue do
       expect(MiqQueue.first.args).to eq([3, 3])
     end
 
+    it "supports a Class object for the class name(deprecated)" do
+      expect(ActiveSupport::Deprecation).to receive(:warn).with(/use a String for class_name/, anything)
+      msg = MiqQueue.put_or_update(:class_name => MiqServer, :instance_id => @miq_server.id, :method_name => "my_zone")
+
+      status, message, result = msg.deliver
+      expect(status).to eq(MiqQueue::STATUS_OK)
+      expect(message).to eq("Message delivered successfully")
+      expect(result).to eq(@miq_server.my_zone)
+    end
+
     it "should use args param to find messages on the queue" do
       MiqQueue.put(
         :class_name  => 'MyClass',
@@ -743,6 +753,86 @@ describe MiqQueue do
       expect(MiqQueue.get).to have_attributes(:args => [1, 2], :task_id => 'first_task')
       expect(MiqQueue.get).to have_attributes(:args => [3, 4], :task_id => 'fun_task')
       expect(MiqQueue.get).to eq(nil)
+    end
+  end
+
+  describe ".broadcast" do
+    let(:queue_params) do
+      {
+        :class_name  => 'MyClass',
+        :method_name => 'method1',
+        :args        => [1, 2]
+      }
+    end
+
+    def queue_items
+      MiqQueue.where(queue_params.slice(:class_name, :method_name))
+    end
+
+    context "with no servers" do
+      it "nothing is created" do
+        MiqQueue.broadcast(queue_params)
+
+        expect(queue_items.count).to eq(0)
+      end
+    end
+
+    context "with a single server" do
+      it "creates a queue item for the server" do
+        EvmSpecHelper.create_guid_miq_server_zone
+        MiqQueue.broadcast(queue_params)
+
+        expect(queue_items.count).to eq(1)
+        expect(MiqQueue.get).to have_attributes(queue_params)
+      end
+    end
+
+    context "with servers in two different zones" do
+      let(:other_role) { FactoryBot.create(:server_role, :name => "other_role") }
+      let(:other_zone) { FactoryBot.create(:zone) }
+
+      # NOTE: `.create_list` doesn't work with `:guid`
+      let(:other_servers) do
+        [
+          FactoryBot.create(:miq_server, :guid => SecureRandom.uuid, :zone => other_zone),
+          FactoryBot.create(:miq_server, :guid => SecureRandom.uuid, :zone => other_zone)
+        ]
+      end
+
+      before do
+        EvmSpecHelper.create_guid_miq_server_zone
+        other_servers.last.role = other_role.name
+      end
+
+      it "creates a queue item for the server" do
+        MiqQueue.broadcast(queue_params)
+
+        expect(queue_items.count).to eq(3)
+
+        (other_servers + [MiqServer.my_server]).each do |server|
+          EvmSpecHelper.stub_as_local_server(server)
+
+          expect(MiqQueue.get).to have_attributes(queue_params)
+        end
+      end
+
+      it ":zone and :role are cleared" do
+        MiqQueue.broadcast(queue_params)
+
+        expect(queue_items.count).to eq(3)
+        expect(queue_items.map(&:zone).all?(&:nil?)).to be_truthy
+        expect(queue_items.map(&:role).all?(&:nil?)).to be_truthy
+      end
+
+      it "raises an error if :zone is passed" do
+        queue_params[:zone] = other_zone
+        expect { MiqQueue.broadcast(queue_params) }.to raise_error(ArgumentError)
+      end
+
+      it "raises an error if :role is passed" do
+        queue_params[:role] = other_zone
+        expect { MiqQueue.broadcast(queue_params) }.to raise_error(ArgumentError)
+      end
     end
   end
 

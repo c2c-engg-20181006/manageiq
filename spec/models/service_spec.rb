@@ -52,18 +52,14 @@ describe Service do
 
     it "queues a power calculation if the next_group_index is nil" do
       expect(@service).to receive(:next_group_index).and_return(nil)
-      expect(@service).to receive(:queue_power_calculation).never
       expect(MiqEvent).to receive(:raise_evm_event).with(@service, :service_started)
-
       @service.process_group_action(:start, 0, 1)
     end
 
     it "does not queue a power calculation if the next_group_index is not nil" do
       expect(@service).to receive(:next_group_index).and_return(1)
-      expect(@service).to receive(:queue_power_calculation).never
       expect(@service).to receive(:queue_group_action).once
       expect(MiqEvent).to receive(:raise_evm_event).with(@service, :service_started).never
-
       @service.process_group_action(:start, 0, 1)
     end
   end
@@ -429,13 +425,28 @@ describe Service do
     end
 
     describe ".queue_chargeback_reports" do
-      it "queue request to generate chargeback report for each service" do
+      before do
         @service_c1 = FactoryBot.create(:service, :service => @service)
         @service_c1.name = "Test_Service_2"
         @service_c1 << @vm1
         @service_c1.save
+      end
 
+      it "queue request to generate chargeback report for each service" do
         expect(MiqQueue).to receive(:put).twice
+        described_class.queue_chargeback_reports
+      end
+
+      it "queue request to generate chargeback report only in service's region" do
+        allow(Service).to receive(:in_my_region).and_return([@service_c1])
+        expect(MiqQueue).to receive(:put).once
+        described_class.queue_chargeback_reports
+      end
+
+      it "does not queue request to generate chargeback report if service retired" do
+        @service_c1.update(:retired => true)
+        allow(Service).to receive(:in_my_region).and_return([@service_c1])
+        expect(MiqQueue).not_to receive(:put)
         described_class.queue_chargeback_reports
       end
     end
@@ -678,13 +689,19 @@ describe Service do
   end
 
   describe "#retireable?" do
-    let(:service_with_type) { FactoryBot.create(:service, :type => "thing") }
+    let(:service_with_type) { FactoryBot.create(:service, :type => "thing", :lifecycle_state => 'provisioned') }
+    let(:unprovd_service_with_type) { FactoryBot.create(:service, :type => "thing") }
     let(:service_without_type) { FactoryBot.create(:service, :type => nil) }
-    let(:service_with_parent) { FactoryBot.create(:service, :service => FactoryBot.create(:service)) }
+    let(:service_with_parent) { FactoryBot.create(:service, :service => FactoryBot.create(:service), :lifecycle_state => 'provisioned') }
+    let(:unprovisioned_service_with_parent) { FactoryBot.create(:service, :service => FactoryBot.create(:service)) }
     context "with no parent" do
       context "with type" do
         it "true" do
           expect(service_with_type.retireable?).to be(true)
+        end
+
+        it "true" do
+          expect(unprovd_service_with_type.retireable?).to be(false)
         end
       end
 
@@ -698,6 +715,7 @@ describe Service do
     context "with parent" do
       it "true" do
         expect(service_with_parent.retireable?).to be(true)
+        expect(unprovisioned_service_with_parent.retireable?).to be(false)
       end
     end
   end
@@ -895,19 +913,20 @@ describe Service do
     let(:service) { described_class.new(:options => {:dialog => "dialog_options"}) }
     let(:dialog_serializer) { instance_double("DialogSerializer") }
     let(:workflow) { instance_double("ResourceActionWorkflow", :dialog => "workflow_dialog") }
+    let(:ra) { FactoryBot.create(:resource_action, :dialog_id => 58, :ae_namespace => "foo", :ae_class => "bar", :ae_instance => "baz", :ae_attributes => {:service_action=>"reconfigure"}) }
 
     before do
       allow(DialogSerializer).to receive(:new).and_return(dialog_serializer)
       allow(dialog_serializer).to receive(:serialize).and_return("serialized_reconfigure_dialog")
       allow(ResourceActionWorkflow).to receive(:new).and_return(workflow)
-      allow(service).to receive(:reconfigure_resource_action).and_return("reconfigure_resource_action")
+      allow(service).to receive(:reconfigure_resource_action).and_return(ra)
     end
 
     it "creates a new resource action workflow" do
       expect(ResourceActionWorkflow).to receive(:new).with(
         "dialog_options",
         User.current_user,
-        "reconfigure_resource_action",
+        ra,
         :target => service, :reconfigure => true
       )
       service.reconfigure_dialog

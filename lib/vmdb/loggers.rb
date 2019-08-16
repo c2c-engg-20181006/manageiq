@@ -1,4 +1,6 @@
 require 'manageiq'
+require 'manageiq-loggers'
+require 'miq_environment'
 require 'util/vmdb-logger'
 
 module Vmdb
@@ -19,12 +21,14 @@ module Vmdb
 
     def self.apply_config(config)
       apply_config_value(config, $log,                :level)
+      apply_config_value(config, $journald_log,       :level) if $journald_log
       apply_config_value(config, $rails_log,          :level_rails)
       apply_config_value(config, $ansible_tower_log,  :level_ansible_tower)
       apply_config_value(config, $api_log,            :level_api)
       apply_config_value(config, $miq_ae_logger,      :level_automation)
       apply_config_value(config, $aws_log,            :level_aws)
       apply_config_value(config, $azure_log,          :level_azure)
+      apply_config_value(config, $azure_stack_log,    :level_azure_stack)
       apply_config_value(config, $cn_monitoring_log,  :level_cn_monitoring)
       apply_config_value(config, $datawarehouse_log,  :level_datawarehouse)
       apply_config_value(config, $fog_log,            :level_fog)
@@ -45,6 +49,7 @@ module Vmdb
 
       $audit_log          = AuditLogger.new(path_dir.join("audit.log"))
       $container_log      = ContainerLogger.new
+      $journald_log       = create_journald_logger
       $log                = create_multicast_logger(path_dir.join("evm.log"))
       $rails_log          = create_multicast_logger(path_dir.join("#{Rails.env}.log"))
       $api_log            = create_multicast_logger(path_dir.join("api.log"))
@@ -52,6 +57,7 @@ module Vmdb
       $miq_ae_logger      = create_multicast_logger(path_dir.join("automation.log"))
       $aws_log            = create_multicast_logger(path_dir.join("aws.log"))
       $azure_log          = create_multicast_logger(path_dir.join("azure.log"), AzureLogger)
+      $azure_stack_log    = create_multicast_logger(path_dir.join("azure_stack.log"))
       $cn_monitoring_log  = create_multicast_logger(path_dir.join("container_monitoring.log"))
       $datawarehouse_log  = create_multicast_logger(path_dir.join("datawarehouse.log"))
       $fog_log            = create_multicast_logger(path_dir.join("fog.log"), FogLogger)
@@ -73,9 +79,19 @@ module Vmdb
     def self.create_multicast_logger(log_file_path, logger_class = VMDBLogger)
       logger_class.new(log_file_path).tap do |logger|
         logger.extend(ActiveSupport::Logger.broadcast($container_log)) if ENV["CONTAINER"]
+        logger.extend(ActiveSupport::Logger.broadcast($journald_log))  if $journald_log
       end
     end
     private_class_method :create_multicast_logger
+
+    private_class_method def self.create_journald_logger
+      return unless MiqEnvironment::Command.supports_systemd?
+
+      require "manageiq/loggers/journald"
+      ManageIQ::Loggers::Journald.new
+    rescue LoadError
+      nil
+    end
 
     def self.configure_external_loggers
       require 'awesome_spawn'

@@ -56,7 +56,9 @@ class ServiceTemplateTransformationPlanTask < ServiceTemplateProvisionTask
     destination_cluster
     virtv2v_disks
     network_mappings
-    update_attributes(:state => 'migrate')
+    { :status => 'Ok', :message => 'Preflight check is successful' }
+  rescue StandardError => error
+    { :status => 'Error', :message => error.message }
   end
 
   def source_cluster
@@ -146,7 +148,7 @@ class ServiceTemplateTransformationPlanTask < ServiceTemplateProvisionTask
 
     _log.info("Queuing the download of #{log_type} log for #{description} with ID [#{id}]")
     task_options = {:userid => userid, :action => 'transformation_log'}
-    queue_options = {:class_name  => self.class,
+    queue_options = {:class_name  => self.class.name,
                      :method_name => 'transformation_log',
                      :instance_id => id,
                      :args        => [log_type],
@@ -187,6 +189,7 @@ class ServiceTemplateTransformationPlanTask < ServiceTemplateProvisionTask
   end
 
   def update_options(opts)
+    save if changed?
     with_lock do
       # Automate is updating this options hash (various keys) as well, using with_lock.
       options.merge!(opts)
@@ -209,6 +212,7 @@ class ServiceTemplateTransformationPlanTask < ServiceTemplateProvisionTask
     updates = {}
     virtv2v_state = conversion_host.get_conversion_state(options[:virtv2v_wrapper]['state_file'])
     updated_disks = virtv2v_disks
+    updates[:virtv2v_pid] = virtv2v_state['pid'] if virtv2v_state['pid'].present?
     updates[:virtv2v_message] = virtv2v_state['last_message']['message'] if virtv2v_state['last_message'].present?
     if virtv2v_state['finished'].nil?
       updated_disks.each do |disk|
@@ -234,15 +238,30 @@ class ServiceTemplateTransformationPlanTask < ServiceTemplateProvisionTask
   end
 
   def kill_virtv2v(signal = 'TERM')
-    return false if options[:virtv2v_started_on].blank? || options[:virtv2v_finished_on].present? || options[:virtv2v_wrapper].blank?
-    return false unless options[:virtv2v_wrapper]['pid']
-    conversion_host.kill_process(options[:virtv2v_wrapper]['pid'], signal)
+    get_conversion_state
+
+    unless virtv2v_running?
+      _log.info("virt-v2v is not running, so there is nothing to do.")
+      return false
+    end
+
+    unless options[:virtv2v_pid]
+      _log.info("No PID has been reported by virt-v2v-wrapper, so we can't kill it.")
+      return false
+    end
+
+    _log.info("Killing virt-v2v (PID: #{options[:virtv2v_pid]}) with #{signal} signal.")
+    conversion_host.kill_process(options[:virtv2v_pid], signal)
   end
 
   private
 
   def vm_resource
     miq_request.vm_resources.find_by(:resource => source)
+  end
+
+  def virtv2v_running?
+    options[:virtv2v_started_on].present? && options[:virtv2v_finished_on].blank? && options[:virtv2v_wrapper].present?
   end
 
   def create_error_status_task(userid, msg)

@@ -39,17 +39,18 @@ class VmOrTemplate < ApplicationRecord
 
   VENDOR_TYPES = {
     # DB            Displayed
-    "azure"     => "Azure",
-    "vmware"    => "VMware",
-    "microsoft" => "Microsoft",
-    "xen"       => "XenSource",
-    "parallels" => "Parallels",
-    "amazon"    => "Amazon",
-    "redhat"    => "RedHat",
-    "openstack" => "OpenStack",
-    "google"    => "Google",
-    "kubevirt"  => "KubeVirt",
-    "unknown"   => "Unknown"
+    "azure"       => "Azure",
+    "azure_stack" => "AzureStack",
+    "vmware"      => "VMware",
+    "microsoft"   => "Microsoft",
+    "xen"         => "XenSource",
+    "parallels"   => "Parallels",
+    "amazon"      => "Amazon",
+    "redhat"      => "RedHat",
+    "openstack"   => "OpenStack",
+    "google"      => "Google",
+    "kubevirt"    => "KubeVirt",
+    "unknown"     => "Unknown"
   }
 
   POWER_OPS = %w(start stop suspend reset shutdown_guest standby_guest reboot_guest)
@@ -156,9 +157,9 @@ class VmOrTemplate < ApplicationRecord
   virtual_column :used_storage,                         :type => :integer,    :uses => [:used_disk_storage, :mem_cpu]
   virtual_column :used_storage_by_state,                :type => :integer,    :uses => :used_storage
   virtual_column :uncommitted_storage,                  :type => :integer,    :uses => [:provisioned_storage, :used_storage_by_state]
-  virtual_delegate :ram_size_in_bytes,                  :to => :hardware, :allow_nil => true, :default => 0
-  virtual_delegate :mem_cpu,                            :to => "hardware.memory_mb", :allow_nil => true, :default => 0
-  virtual_delegate :ram_size,                           :to => "hardware.memory_mb", :allow_nil => true, :default => 0
+  virtual_delegate :ram_size_in_bytes,                  :to => :hardware, :allow_nil => true, :default => 0, :type => :integer
+  virtual_delegate :mem_cpu,                            :to => "hardware.memory_mb", :allow_nil => true, :default => 0, :type => :integer
+  virtual_delegate :ram_size,                           :to => "hardware.memory_mb", :allow_nil => true, :default => 0, :type => :integer
   virtual_column :ipaddresses,                          :type => :string_set, :uses => {:hardware => :ipaddresses}
   virtual_column :hostnames,                            :type => :string_set, :uses => {:hardware => :hostnames}
   virtual_column :mac_addresses,                        :type => :string_set, :uses => {:hardware => :mac_addresses}
@@ -166,8 +167,8 @@ class VmOrTemplate < ApplicationRecord
   virtual_column :num_hard_disks,                       :type => :integer,    :uses => {:hardware => :hard_disks}
   virtual_column :num_disks,                            :type => :integer,    :uses => {:hardware => :disks}
   virtual_column :num_cpu,                              :type => :integer,    :uses => :hardware
-  virtual_delegate :cpu_total_cores, :cpu_cores_per_socket, :to => :hardware, :allow_nil => true, :default => 0
-  virtual_delegate :annotation, :to => :hardware, :prefix => "v", :allow_nil => true
+  virtual_delegate :cpu_total_cores, :cpu_cores_per_socket, :to => :hardware, :allow_nil => true, :default => 0, :type => :integer
+  virtual_delegate :annotation, :to => :hardware, :prefix => "v", :allow_nil => true, :type => :string
   virtual_column :has_rdm_disk,                         :type => :boolean,    :uses => {:hardware => :disks}
   virtual_column :disks_aligned,                        :type => :string,     :uses => {:hardware => {:hard_disks => :partitions_aligned}}
 
@@ -183,21 +184,25 @@ class VmOrTemplate < ApplicationRecord
   virtual_has_one   :service,              :class_name => 'Service'
   virtual_has_one   :parent_resource,      :class_name => "VmOrTemplate"
 
-  virtual_delegate :name, :to => :host, :prefix => true, :allow_nil => true
-  virtual_delegate :name, :to => :storage, :prefix => true, :allow_nil => true
-  virtual_delegate :name, :to => :ems_cluster, :prefix => true, :allow_nil => true
-  virtual_delegate :vmm_product, :to => :host, :prefix => :v_host, :allow_nil => true
-  virtual_delegate :v_pct_free_disk_space, :v_pct_used_disk_space, :to => :hardware, :allow_nil => true
+  virtual_delegate :name, :to => :host, :prefix => true, :allow_nil => true, :type => :string
+  virtual_delegate :name, :to => :storage, :prefix => true, :allow_nil => true, :type => :string
+  virtual_delegate :name, :to => :ems_cluster, :prefix => true, :allow_nil => true, :type => :string
+  virtual_delegate :vmm_product, :to => :host, :prefix => :v_host, :allow_nil => true, :type => :string
+  virtual_delegate :v_pct_free_disk_space, :v_pct_used_disk_space, :to => :hardware, :allow_nil => true, :type => :float
   delegate :connect_lans, :disconnect_lans, :to => :hardware, :allow_nil => true
 
   before_validation :set_tenant_from_group
   after_save :save_genealogy_information
 
-  scope :active,    ->       { where.not(:ems_id => nil) }
-  scope :with_type, ->(type) { where(:type => type) }
-  scope :archived,  ->       { where(:ems_id => nil, :storage_id => nil) }
-  scope :orphaned,  ->       { where(:ems_id => nil).where.not(:storage_id => nil) }
-  scope :with_ems,  ->       { where.not(:ems_id => nil) }
+  scope :active,       ->       { where.not(:ems_id => nil) }
+  scope :with_type,    ->(type) { where(:type => type) }
+  scope :archived,     ->       { where(:ems_id => nil, :storage_id => nil) }
+  scope :orphaned,     ->       { where(:ems_id => nil).where.not(:storage_id => nil) }
+  scope :retired,      ->       { where(:retired => true) }
+  scope :with_ems,     ->       { where.not(:ems_id => nil) }
+  scope :not_archived, ->       { where.not(:ems_id => nil).or(where.not(:storage_id => nil)) }
+  scope :not_orphaned, ->       { where.not(:ems_id => nil).or(where(:storage_id => nil)) }
+  scope :not_retired,  ->       { where(:retired => false).or(where(:retired => nil)) }
 
   # The SQL form of `#registered?`, with it's inverse as well.
   # TODO: Vmware Specific (copied (old) TODO from #registered?)
@@ -225,7 +230,7 @@ class VmOrTemplate < ApplicationRecord
   }
   REQUIRED_ADVANCED_SETTINGS.each do |k, (m, t)|
     define_method(m) do
-      as = advanced_settings.detect { |as| as.name == k }
+      as = advanced_settings.detect { |setting| setting.name == k }
       return nil if as.nil? || as.value.nil?
 
       return case t
@@ -842,6 +847,7 @@ class VmOrTemplate < ApplicationRecord
       if src_vm.nil? && e.vm_ems_ref == ems_ref
         src_vm = self
         e.vm_or_template_id = src_vm.id
+        e.vm_name = src_vm.name
         do_save = true
       end
 
@@ -1185,7 +1191,7 @@ class VmOrTemplate < ApplicationRecord
 
     # Loop through the found VM's and set their create times
     found.each do |vmh|
-      v = vms_to_update.detect { |v| v.id == vmh[:id] }
+      v = vms_to_update.detect { |vm| vm.id == vmh[:id] }
       v.update_attribute(:ems_created_on, vmh[:created_time])
     end
   end
@@ -1382,10 +1388,9 @@ class VmOrTemplate < ApplicationRecord
     cat_name = "folder_path_#{folder_type}"
     cat = Classification.find_by_name(cat_name)
     unless cat
-      cat = Classification.new(
+      cat = Classification.is_category.new(
         :name         => cat_name,
         :description  => "Parent Folder Path (#{folder_type == :blue ? "VMs & Templates" : "Hosts & Clusters"})",
-        :parent_id    => 0,
         :single_value => true,
         :read_only    => true
       )
@@ -1519,9 +1524,9 @@ class VmOrTemplate < ApplicationRecord
   #
 
   virtual_delegate :allocated_disk_storage, :used_disk_storage,
-                   :to => :hardware, :allow_nil => true, :uses => {:hardware => :disks}
+                   :to => :hardware, :allow_nil => true, :uses => {:hardware => :disks}, :type => :integer
 
-  virtual_delegate :provisioned_storage, :to => :hardware, :allow_nil => true, :default => 0
+  virtual_delegate :provisioned_storage, :to => :hardware, :allow_nil => true, :default => 0, :type => :integer
 
   def used_storage
     used_disk_storage.to_i + ram_size_in_bytes

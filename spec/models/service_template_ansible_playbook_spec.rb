@@ -1,8 +1,8 @@
 describe ServiceTemplateAnsiblePlaybook do
   let(:user)     { FactoryBot.create(:user_with_group) }
-  let(:auth_one) { FactoryBot.create(:embedded_ansible_credential, :manager_ref => '6') }
-  let(:auth_two) { FactoryBot.create(:embedded_ansible_credential, :manager_ref => '10') }
-  let(:auth_three) { FactoryBot.create(:embedded_ansible_credential, :manager_ref => '14') }
+  let(:auth_one) { FactoryBot.create(:embedded_ansible_credential) }
+  let(:auth_two) { FactoryBot.create(:embedded_ansible_credential) }
+  let(:auth_three) { FactoryBot.create(:embedded_ansible_credential) }
 
   let(:script_source) { FactoryBot.create(:configuration_script_source, :manager => ems) }
 
@@ -119,7 +119,7 @@ describe ServiceTemplateAnsiblePlaybook do
       end.to raise_error(Exception)
     end
 
-    it '#build_parameter_list' do
+    it '.build_parameter_list' do
       name = catalog_item_options[:name]
       catalog_extra_vars = catalog_item_options_two
       description = catalog_item_options[:description]
@@ -135,9 +135,9 @@ describe ServiceTemplateAnsiblePlaybook do
         :description        => description,
         :become_enabled     => true,
         :verbosity          => 3,
-        :credential         => 6,
-        :network_credential => 10,
-        :vault_credential   => 14
+        :credential         => auth_one.id,
+        :network_credential => auth_two.id,
+        :vault_credential   => auth_three.id
       )
 
       expect(params.keys).to_not include(:extra_vars, :cloud_credentials)
@@ -240,7 +240,7 @@ describe ServiceTemplateAnsiblePlaybook do
       info[:dialog_id] = service_template.dialogs.first.id
 
       expect(service_template.dialogs.first.id).to eq info[:dialog_id]
-      expect(described_class).to receive(:create_new_dialog).never
+      expect(service_template).to receive(:create_new_dialog).never
       expect(job_template).to receive(:update_in_provider_queue).once
       service_template.update_catalog_item(catalog_item_options_three, user)
       service_template.reload
@@ -291,8 +291,7 @@ describe ServiceTemplateAnsiblePlaybook do
       service_template = prebuild_service_template(:job_template => false)
       adjust_resource_actions(service_template, nil)
 
-      expect(ManageIQ::Providers::EmbeddedAnsible::AutomationManager::ConfigurationScript)
-        .to receive(:delete_in_provider_queue).never
+      expect(job_template).to receive(:delete_in_provider_queue).never
       service_template.send(:delete_job_templates, [])
     end
 

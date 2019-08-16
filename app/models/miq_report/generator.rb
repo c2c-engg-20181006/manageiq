@@ -28,7 +28,7 @@ module MiqReport::Generator
     end
 
     def get_col_break_suffixes(col)
-      col_type = get_col_type(col)
+      col_type = MiqExpression.parse_field_or_tag(col).try(:column_type)
       case col_type
       when :date
         date_time_break_suffixes.select { |_name, suffix| !suffix.to_s.starts_with?("hour") }
@@ -235,7 +235,6 @@ module MiqReport::Generator
         db_class.find_entries(ext_options).where(where_clause).where(options[:where_clause]),
         :category  => performance[:group_by_category],
         :cat_model => options[:cat_model],
-        :include   => get_include_for_find
       )
       build_correlate_tag_cols
     end
@@ -319,7 +318,11 @@ module MiqReport::Generator
 
     ## add in virtual attributes that can be calculated from sql
     rbac_opts[:extra_cols] = va_sql_cols unless va_sql_cols.blank?
-    rbac_opts[:use_sql_view] = true if db_options && db_options[:use_sql_view]
+    rbac_opts[:use_sql_view] = if db_options.nil? || db_options[:use_sql_view].nil?
+                                 MiqReport.default_use_sql_view
+                               else
+                                 db_options[:use_sql_view]
+                               end
 
     results, attrs = Rbac.search(rbac_opts)
     results = Metric::Helper.remove_duplicate_timestamps(results)

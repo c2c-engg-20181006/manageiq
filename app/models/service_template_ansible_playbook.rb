@@ -93,11 +93,7 @@ class ServiceTemplateAnsiblePlaybook < ServiceTemplateGeneric
       :playbook                 => playbook.name,
       :inventory                => tower.provider.default_inventory,
       :become_enabled           => info[:become_enabled].present?,
-      :verbosity                => info[:verbosity].presence || 0,
-      :ask_variables_on_launch  => true,
-      :ask_limit_on_launch      => true,
-      :ask_inventory_on_launch  => true,
-      :ask_credential_on_launch => true
+      :verbosity                => info[:verbosity].presence || 0
     }
     if info[:extra_vars]
       params[:extra_vars] = info[:extra_vars].transform_values do |val|
@@ -138,9 +134,12 @@ class ServiceTemplateAnsiblePlaybook < ServiceTemplateGeneric
 
   def update_catalog_item(options, auth_user = nil)
     config_info = validate_update_config_info(options)
+    unless config_info
+      update!(options)
+      return reload
+    end
     name = options[:name] || self.name
     description = options[:description] || self.description
-
     update_job_templates(name, description, config_info, auth_user)
 
     config_info.deep_merge!(self.class.send(:create_job_templates, name, description, config_info, auth_user, self))
@@ -225,6 +224,8 @@ class ServiceTemplateAnsiblePlaybook < ServiceTemplateGeneric
 
   def validate_update_config_info(options)
     opts = super
+    return unless options.key?(:config_info)
+
     self.class.send(:validate_config_info, opts)
   end
 

@@ -3,7 +3,8 @@ require 'manageiq/automation_engine/syntax_checker'
 class MiqAeMethod < ApplicationRecord
   include MiqAeSetUserInfoMixin
   include MiqAeYamlImportExportMixin
-  default_value_for :embedded_methods, :value => [], :allows_nil => false
+  default_value_for(:embedded_methods) { [] }
+  validates :embedded_methods, :exclusion => { :in => [nil] }
   serialize :options, Hash
 
   belongs_to :ae_class, :class_name => "MiqAeClass", :foreign_key => :class_id
@@ -17,7 +18,7 @@ class MiqAeMethod < ApplicationRecord
 
   AVAILABLE_LANGUAGES  = ["ruby", "perl"]  # someday, add sh, perl, python, tcl and any other scripting language
   validates_inclusion_of  :language,  :in => AVAILABLE_LANGUAGES
-  AVAILABLE_LOCATIONS = %w(builtin inline expression playbook).freeze
+  AVAILABLE_LOCATIONS = %w(builtin inline expression playbook ansible_job_template ansible_workflow_template).freeze
   validates_inclusion_of  :location,  :in => AVAILABLE_LOCATIONS
   AVAILABLE_SCOPES     = ["class", "instance"]
   validates_inclusion_of  :scope,     :in => AVAILABLE_SCOPES

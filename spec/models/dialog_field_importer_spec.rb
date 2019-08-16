@@ -275,6 +275,30 @@ describe DialogFieldImporter do
       end
     end
 
+    context "#visible?" do
+      let(:dialog_field) do
+        {
+          "type"    => "DialogFieldTextBox",
+          "name"    => "Something else"
+        }
+      end
+
+      it "without visible setting defaults to true" do
+        dialog_field_importer.import_field(dialog_field)
+        expect(DialogField.first.visible?).to eq(true)
+      end
+
+      it "false" do
+        dialog_field_importer.import_field(dialog_field.merge("visible" => false))
+        expect(DialogField.first.visible?).to eq(false)
+      end
+
+      it "true" do
+        dialog_field_importer.import_field(dialog_field.merge("visible" => true))
+        expect(DialogField.first.visible?).to eq(true)
+      end
+    end
+
     context "when the type of the dialog field is not included in DIALOG_FIELD_TYPES and not nil" do
       let(:type) { "potato" }
 
@@ -282,6 +306,41 @@ describe DialogFieldImporter do
         expect do
           dialog_field_importer.import_field(dialog_field)
         end.to raise_error(DialogFieldImporter::InvalidDialogFieldTypeError)
+      end
+    end
+
+    context "version migrations" do
+      let(:type) { "DialogFieldDynamicList" }
+      let(:dialog_field_show_false) do
+        dialog_field.merge('show_refresh_button' => false,
+                           'load_values_on_init' => false)
+      end
+      let(:dialog_field_load_false) do
+        dialog_field.merge('show_refresh_button' => true,
+                           'load_values_on_init' => false)
+      end
+
+      context "from version 1" do
+        context "load_values_on_init" do
+          it "is set to true when no refresh button" do
+            dialog_field_importer.import_field(dialog_field_show_false, DialogImportService::DEFAULT_DIALOG_VERSION)
+            expect(DialogField.first.load_values_on_init).to eq(true)
+          end
+
+          it "is preserved when refresh button" do
+            dialog_field_importer.import_field(dialog_field_load_false, DialogImportService::DEFAULT_DIALOG_VERSION)
+            expect(DialogField.first.load_values_on_init).to eq(false)
+          end
+        end
+      end
+
+      context "from current version" do
+        context "load_values_on_init" do
+          it "is not touched" do
+            dialog_field_importer.import_field(dialog_field_show_false)
+            expect(DialogField.first.load_values_on_init).to eq(false)
+          end
+        end
       end
     end
   end

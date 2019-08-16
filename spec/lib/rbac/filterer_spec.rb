@@ -16,7 +16,7 @@ describe Rbac::Filterer do
       actual, = Rbac::Filterer.search(:targets => Vm, :user => user)
 
       expected = [vm1, vm2]
-      expect(actual).to match(expected)
+      expect(actual).to match_array(expected)
     end
 
     it "supports AND conditions within categories" do
@@ -230,6 +230,24 @@ describe Rbac::Filterer do
         end
       end
 
+      context 'searching for instances of Lans' do
+        let!(:lan) { FactoryBot.create_list(:lan, 2).first }
+
+        before do
+          lan.tag_with('/managed/environment/prod', :ns => '*')
+        end
+
+        it 'lists only tagged Lans' do
+          results = described_class.search(:class => Lan, :user => user).first
+          expect(results).to match_array [lan]
+        end
+
+        it 'lists only all Lans' do
+          results = described_class.search(:class => Lan, :user => admin_user).first
+          expect(results).to match_array Lan.all
+        end
+      end
+
       context 'searching for instances of ConfigurationScriptSource' do
         let!(:configuration_script_source) { FactoryBot.create_list(:embedded_ansible_configuration_script_source, 2).first }
 
@@ -358,6 +376,79 @@ describe Rbac::Filterer do
           _other_resource = FactoryBot.create(factory_name, :tenant => other_tenant)
           results = described_class.filtered(klass, :user => owner_user)
           expect(results).to match_array [owned_resource]
+        end
+      end
+    end
+
+    context "with ContainerManagers with user roles" do
+      let(:owned_ems) { FactoryBot.create(:ems_openshift) }
+      let(:other_ems) { FactoryBot.create(:ems_openshift) }
+
+      before do
+        filters = ["/belongsto/ExtManagementSystem|#{owned_ems.name}"]
+
+        owner_group.entitlement = Entitlement.new
+        owner_group.entitlement.set_managed_filters([])
+        owner_group.entitlement.set_belongsto_filters(filters)
+        owner_group.save!
+      end
+
+      %w[
+        Container
+        ContainerBuild
+        ContainerGroup
+        ContainerImage
+        ContainerImageRegistry
+        ContainerNode
+        ContainerProject
+        ContainerReplicator
+        ContainerRoute
+        ContainerService
+        ContainerTemplate
+      ].each do |object_klass|
+        context "with #{object_klass}s" do
+          let(:subklass) { owned_ems.class.const_get(object_klass) }
+          let!(:object1) { subklass.create(:ems_id => owned_ems.id) }
+          let!(:object2) { subklass.create(:ems_id => owned_ems.id) }
+          let!(:object3) { subklass.create(:ems_id => other_ems.id) }
+          let!(:object4) { subklass.create(:ems_id => other_ems.id) }
+
+          it "properly filters" do
+            search_opts = {
+              :targets => subklass,
+              :userid  => owner_user.userid
+            }
+            results = described_class.search(search_opts)
+            objects = results.first
+
+            expect(objects.length).to eq(2)
+            expect(objects.to_a).to match_array([object1, object2])
+          end
+        end
+      end
+
+      # ContainerVolumes are the only class that has a `has_many :through`
+      # relationship with EMS.
+      context "with ContainerVolumes" do
+        let(:subklass)     { owned_ems.class.const_get(:ContainerGroup) }
+        let(:volume_klass) { owned_ems.class.const_get(:ContainerVolume) }
+        let!(:group1)      { subklass.create(:ems_id => owned_ems.id) }
+        let!(:group2)      { subklass.create(:ems_id => other_ems.id) }
+        let!(:volume1)     { volume_klass.create(:parent => group1) }
+        let!(:volume2)     { volume_klass.create(:parent => group1) }
+        let!(:volume3)     { volume_klass.create(:parent => group2) }
+        let!(:volume4)     { volume_klass.create(:parent => group2) }
+
+        it "properly filters" do
+          search_opts = {
+            :targets => volume_klass,
+            :userid  => owner_user.userid
+          }
+          results = described_class.search(search_opts)
+          objects = results.first
+
+          expect(objects.length).to eq(2)
+          expect(objects.to_a).to match_array([volume1, volume2])
         end
       end
     end
@@ -939,8 +1030,7 @@ describe Rbac::Filterer do
           :max_disk_usage_rate_average     => {},
           :min_net_usage_rate_average      => {},
           :max_net_usage_rate_average      => {},
-          :v_derived_storage_used          => {},
-          :resource                        => {}
+          :v_derived_storage_used          => {}
         }
       end
 
@@ -1244,17 +1334,17 @@ describe Rbac::Filterer do
       end
 
       context "with VMs and Templates" do
+        let(:root) { FactoryBot.create(:ems_folder, :name => "Datacenters").tap { |ems_folder| ems_folder.parent = @ems } }
+
+        let(:dc) { FactoryBot.create(:ems_folder, :name => "Datacenter1").tap { |data_center| data_center.parent = root } }
+
+        let(:hfolder) { FactoryBot.create(:ems_folder, :name => "host").tap { |hfolder| hfolder.parent = dc } }
+
         before do
           @ems = FactoryBot.create(:ems_vmware, :name => 'ems1')
           @host1.update_attributes(:ext_management_system => @ems)
           @host2.update_attributes(:ext_management_system => @ems)
 
-          root            = FactoryBot.create(:ems_folder, :name => "Datacenters")
-          root.parent     = @ems
-          dc              = FactoryBot.create(:datacenter, :name => "Datacenter1")
-          dc.parent       = root
-          hfolder         = FactoryBot.create(:ems_folder, :name => "host")
-          hfolder.parent  = dc
           @vfolder        = FactoryBot.create(:ems_folder, :name => "vm")
           @vfolder.parent = dc
           @host1.parent   = hfolder
@@ -1318,6 +1408,31 @@ describe Rbac::Filterer do
             results = described_class.search(:class => "ExtManagementSystem", :user => user)
             objects = results.first
             expect(objects).to eq([@ems])
+          end
+
+          context "deleted cluster from belongsto filter" do
+            let!(:group)   { FactoryBot.create(:miq_group, :tenant => default_tenant) }
+            let!(:user)    { FactoryBot.create(:user, :miq_groups => [group]) }
+            let(:cluster_1) { FactoryBot.create(:ems_cluster, :name => "MTC Development 1").tap { |cluster| cluster.parent = hfolder } }
+            let(:cluster_2) { FactoryBot.create(:ems_cluster, :name => "MTC Development 2").tap { |cluster| cluster.parent = hfolder } }
+            let(:vm_folder_path) { "/belongsto/ExtManagementSystem|#{@ems.name}/EmsFolder|#{root.name}/EmsFolder|#{dc.name}/EmsFolder|#{hfolder.name}/EmsCluster|#{cluster_1.name}" }
+
+            it "honors ems_id conditions" do
+              group.entitlement = Entitlement.new
+              group.entitlement.set_belongsto_filters([vm_folder_path])
+              group.entitlement.set_managed_filters([])
+              group.save!
+
+              results = described_class.filtered(EmsCluster, :user => user)
+
+              expect(results).to match_array([cluster_1])
+
+              cluster_1.destroy
+
+              results = described_class.filtered(EmsCluster, :user => user)
+
+              expect(results).to be_empty
+            end
           end
         end
 
@@ -1444,6 +1559,7 @@ describe Rbac::Filterer do
 
           @cluster = FactoryBot.create(:ems_cluster, :name => "MTC Development")
           @cluster.parent = @hfolder
+
           @cluster_folder_path = "#{@mtc_folder_path}/EmsFolder|#{@hfolder.name}/EmsCluster|#{@cluster.name}"
 
           @rp = FactoryBot.create(:resource_pool, :name => "Default for MTC Development")
@@ -1695,8 +1811,8 @@ describe Rbac::Filterer do
               FactoryBot.create(network_model.underscore,  :ext_management_system => network_manager_1)
             end
 
-            context "when records match belogns to filter" do
-              it "lists records of #{network_model} manager according to belongsto filter" do
+            context "when records match belongs to filter" do
+              it "lists records of #{network_model} manager according to belongs to filter" do
                 User.with_user(user) do
                   results = described_class.search(:class => network_model).first
                   expect(results).to match_array([network_object])
@@ -1705,7 +1821,7 @@ describe Rbac::Filterer do
               end
             end
 
-            context "when records don't match belogns to filter" do
+            context "when records don't match belongs to filter" do
               before do
                 group.entitlement = Entitlement.new
                 group.entitlement.set_managed_filters([])
@@ -1784,7 +1900,6 @@ describe Rbac::Filterer do
         CloudNetwork
         CloudSubnet
         FloatingIp
-        LoadBalancer
         NetworkPort
         NetworkRouter
         SecurityGroup
@@ -2084,7 +2199,7 @@ describe Rbac::Filterer do
                               :named_scope         => nil,
                               :display_filter_hash => nil,
                               :conditions          => nil,
-                              :include_for_find    => {:description => {}, :minimum_value => {}, :maximum_value => {}}
+                              :include_for_find    => {:description => {}}
                              ).first
 
         expect(results.length).to eq(VmdbDatabaseSetting.all.length)
@@ -2125,7 +2240,7 @@ describe Rbac::Filterer do
                                          :extra_cols       => "v_total_vms",
                                          :use_sql_view     => true,
                                          :user             => user,
-                                         :include_for_find => {:service_templates => :pictures},
+                                         :include_for_find => {:service_template => :picture},
                                          :order            => "services.name desc")
         expect(results.first).to eq([service1])
         expect(results.last[:auth_count]).to eq(1)
@@ -2159,6 +2274,56 @@ describe Rbac::Filterer do
                                          :order        => "services.id")
         expect(results.first).to eq(services1[0..2])
         expect(results.last[:auth_count]).to eq(4)
+      end
+
+      it "respects order" do
+        # for some reason, while all models respect the order,
+        # MiqRequest sometimes did not. (before we put order in both inner and outer sql)
+        reqs = FactoryBot.create_list(:automation_requests, 3, :requester => user)
+        # move last created record to more recent
+        reqs.first.update(:description => "something")
+        expected_order = [reqs.second, reqs.last, reqs.first]
+
+        recs, attrs = Rbac.search(:targets      => MiqRequest,
+                                  :extra_cols   => %w[id],
+                                  :use_sql_view => true,
+                                  :limit        => 3,
+                                  :user         => user,
+                                  :order        => :updated_on)
+
+        expect(attrs[:auth_count]).to eq(3)
+        expect(recs.map(&:id)).to eq(expected_order.map(&:id))
+
+        recs, attrs = Rbac.search(:targets      => MiqRequest,
+                                  :extra_cols   => %w[],
+                                  :use_sql_view => true,
+                                  :limit        => 3,
+                                  :user         => user,
+                                  :order        => {:updated_on => :desc})
+        expect(attrs[:auth_count]).to eq(3)
+        expect(recs.map(&:id)).to eq(expected_order.reverse.map(&:id))
+      end
+
+      it "remembers distinct" do
+        # create vms with many disks. so a missing distinct would return 3*3 => 9
+        vms = FactoryBot.create_list(:vm_infra, 3, :miq_group => tagged_group)
+        vms.each do |vm|
+          # used by rbac filter
+          vm.tag_with("/managed/environment/prod", :ns => "*")
+          hw = FactoryBot.create(:hardware, :cpu_sockets => 4, :memory_mb => 3.megabytes, :vm => vm)
+          FactoryBot.create_list(:disk, 3, :device_type => "disk", :size => 10_000, :hardware_id => hw.id)
+        end
+
+        recs, attrs = Rbac.search(:targets          => Vm,
+                                  :include_for_find => {:ext_management_system => {}, :hardware => {:disks => {}}, :tags => {}},
+                                  :extra_cols       => %w[ram_size_in_bytes],
+                                  :use_sql_view     => true,
+                                  :limit            => 20,
+                                  :user             => User.super_admin,
+                                  :order            => :updated_on)
+
+        expect(attrs[:auth_count]).to eq(3)
+        expect(recs.map(&:id)).to eq(vms.map(&:id))
       end
     end
   end
@@ -2535,6 +2700,7 @@ describe Rbac::Filterer do
     let(:project1_user)         { FactoryBot.create(:user, :miq_groups => [project1_group]) }
     let(:project1_volume)       { FactoryBot.create(:cloud_volume, :ext_management_system => ems_openstack, :cloud_tenant => project1_cloud_tenant) }
     let(:project1_flavor)       { FactoryBot.create(:flavor, :ext_management_system => ems_openstack) }
+    let(:project1_orchestration_stack) { FactoryBot.create(:orchestration_stack, :ext_management_system => ems_openstack, :cloud_tenant => project1_cloud_tenant) }
     let(:project1_c_t_flavor)   { FactoryBot.create(:cloud_tenant_flavor, :cloud_tenant => project1_cloud_tenant, :flavor => project1_flavor) }
     let(:project2_tenant)       { FactoryBot.create(:tenant, :source_type => 'CloudTenant') }
     let(:project2_cloud_tenant) { FactoryBot.create(:cloud_tenant, :source_tenant => project2_tenant, :ext_management_system => ems_openstack) }
@@ -2542,16 +2708,18 @@ describe Rbac::Filterer do
     let(:project2_user)         { FactoryBot.create(:user, :miq_groups => [project2_group]) }
     let(:project2_volume)       { FactoryBot.create(:cloud_volume, :ext_management_system => ems_openstack, :cloud_tenant => project2_cloud_tenant) }
     let(:project2_flavor)       { FactoryBot.create(:flavor, :ext_management_system => ems_openstack) }
+    let(:project2_orchestration_stack) { FactoryBot.create(:orchestration_stack, :ext_management_system => ems_openstack, :cloud_tenant => project2_cloud_tenant) }
     let(:project2_c_t_flavor)   { FactoryBot.create(:cloud_tenant_flavor, :cloud_tenant => project2_cloud_tenant, :flavor => project2_flavor) }
     let(:ems_other)             { FactoryBot.create(:ems_cloud, :name => 'ems_other', :tenant_mapping_enabled => false) }
     let(:volume_other)          { FactoryBot.create(:cloud_volume, :ext_management_system => ems_other) }
     let(:tenant_other)          { FactoryBot.create(:tenant, :source_type => 'CloudTenant') }
     let(:cloud_tenant_other)    { FactoryBot.create(:cloud_tenant, :source_tenant => tenant_other, :ext_management_system => ems_other) }
     let(:flavor_other)          { FactoryBot.create(:flavor, :ext_management_system => ems_other) }
+    let(:orchestration_stack_other) { FactoryBot.create(:orchestration_stack, :ext_management_system => ems_other, :cloud_tenant => cloud_tenant_other) }
     let(:c_t_flavor_other)      { FactoryBot.create(:cloud_tenant_flavor, :cloud_tenant => cloud_tenant_other, :flavor => flavor_other) }
-    let!(:all_objects)          { [project1_volume, project2_volume, volume_other, cloud_tenant_other, project1_c_t_flavor, project2_c_t_flavor, c_t_flavor_other] }
+    let!(:all_objects)          { [project1_volume, project2_volume, volume_other, cloud_tenant_other, project1_c_t_flavor, project2_c_t_flavor, c_t_flavor_other, project1_orchestration_stack, project2_orchestration_stack, orchestration_stack_other] }
 
-    it "lists its own project's objects and other objects where tenant_mapping is not enabled" do
+    it "lists its own project's objects and other objects where tenant_mapping is enabled" do
       ems_openstack.tenant_mapping_enabled = true
       ems_openstack.save!
       results = described_class.search(:class => CloudVolume, :user => project1_user).first
@@ -2580,37 +2748,55 @@ describe Rbac::Filterer do
 
       results = described_class.search(:class => Flavor, :user => other_user).first
       expect(results).to match_array [flavor_other]
+
+      results = described_class.search(:class => OrchestrationStack, :user => project1_user).first
+      expect(results).to match_array [project1_orchestration_stack, orchestration_stack_other]
+
+      results = described_class.search(:class => OrchestrationStack, :user => project2_user).first
+      expect(results).to match_array [project2_orchestration_stack, orchestration_stack_other]
+
+      results = described_class.search(:class => OrchestrationStack, :user => other_user).first
+      expect(results).to match_array [orchestration_stack_other]
     end
 
     it "all objects are visible to all users when tenant_mapping is not enabled" do
       ems_openstack.tenant_mapping_enabled = false
       ems_openstack.save!
       results = described_class.search(:class => CloudVolume, :user => project1_user).first
-      expect(results).to match_array [project1_volume, project2_volume, volume_other]
+      expect(results).to match_array CloudVolume.all
 
       results = described_class.search(:class => CloudVolume, :user => project2_user).first
-      expect(results).to match_array [project1_volume, project2_volume, volume_other]
+      expect(results).to match_array CloudVolume.all
 
       results = described_class.search(:class => CloudVolume, :user => owner_user).first
-      expect(results).to match_array [project1_volume, project2_volume, volume_other]
+      expect(results).to match_array CloudVolume.all
 
       results = described_class.search(:class => CloudTenant, :user => project1_user).first
-      expect(results).to match_array [project1_cloud_tenant, project2_cloud_tenant, cloud_tenant_other]
+      expect(results).to match_array CloudTenant.all
 
       results = described_class.search(:class => CloudTenant, :user => project2_user).first
-      expect(results).to match_array [project1_cloud_tenant, project2_cloud_tenant, cloud_tenant_other]
+      expect(results).to match_array CloudTenant.all
 
       results = described_class.search(:class => CloudTenant, :user => other_user).first
-      expect(results).to match_array [project1_cloud_tenant, project2_cloud_tenant, cloud_tenant_other]
+      expect(results).to match_array CloudTenant.all
 
       results = described_class.search(:class => Flavor, :user => project1_user).first
-      expect(results).to match_array [project1_flavor, project2_flavor, flavor_other]
+      expect(results).to match_array Flavor.all
 
       results = described_class.search(:class => Flavor, :user => project2_user).first
-      expect(results).to match_array [project1_flavor, project2_flavor, flavor_other]
+      expect(results).to match_array Flavor.all
 
       results = described_class.search(:class => Flavor, :user => other_user).first
-      expect(results).to match_array [project1_flavor, project2_flavor, flavor_other]
+      expect(results).to match_array Flavor.all
+
+      results = described_class.search(:class => OrchestrationStack, :user => project1_user).first
+      expect(results).to match_array OrchestrationStack.all
+
+      results = described_class.search(:class => OrchestrationStack, :user => project2_user).first
+      expect(results).to match_array OrchestrationStack.all
+
+      results = described_class.search(:class => OrchestrationStack, :user => other_user).first
+      expect(results).to match_array OrchestrationStack.all
     end
   end
 
@@ -2666,6 +2852,133 @@ describe Rbac::Filterer do
 
       result = described_class.filtered(Vm, :user => user_t2)
       expect(result).to eq([vm_other_region])
+    end
+  end
+
+  context "additional tenancy on ServiceTemplates" do
+    # tenant_root
+    #   \___ tenant_pineapple
+    #     \__ subtenant_tenant_pineapple_1
+    #     \__ subtenant_tenant_pineapple_2
+    #     \__ subtenant_tenant_pineapple_3  <- service_template_1_1 shared for subtenant_tenant_pineapple_3 (TEST CASE 3)
+    #   \___ tenant_eye_bee_em (service_template_eye_bee_em)
+    #     \__ subtenant_tenant_eye_bee_em_1 (service_template_1)
+    #       \__ subtenant_tenant_eye_bee_em_1_1 (service_template_1_1)  <- SHARED TENANT (for test cases below)
+    #       \__ subtenant_tenant_eye_bee_em_1_2                         <- service_template_1_1 shared for subtenant_tenant_eye_bee_em_1_2 (TEST CASE 1)
+    #     \__ subtenant_tenant_eye_bee_em_2 (service_template_2)
+    #     \__ subtenant_tenant_eye_bee_em_3  (service_template_3)       <- service_template_1_1 shared for subtenant_tenant_eye_bee_em_3 (TEST CASE 2)
+
+    let!(:tenant_root) { Tenant.seed }
+
+    let!(:tenant_pineapple)             { FactoryBot.create(:tenant, :parent => tenant_root) }
+    let!(:subtenant_tenant_pineapple_1) { FactoryBot.create(:tenant, :parent => tenant_pineapple) }
+    let!(:subtenant_tenant_pineapple_2) { FactoryBot.create(:tenant, :parent => tenant_pineapple) }
+    let!(:subtenant_tenant_pineapple_3) { FactoryBot.create(:tenant, :parent => tenant_pineapple) }
+
+    let!(:tenant_eye_bee_em) { FactoryBot.create(:tenant, :parent => tenant_root) }
+    let!(:subtenant_tenant_eye_bee_em_1) { FactoryBot.create(:tenant, :parent => tenant_eye_bee_em) }
+    let!(:subtenant_tenant_eye_bee_em_2) { FactoryBot.create(:tenant, :parent => tenant_eye_bee_em) }
+    let!(:subtenant_tenant_eye_bee_em_3) { FactoryBot.create(:tenant, :parent => tenant_eye_bee_em) }
+
+    let!(:subtenant_tenant_eye_bee_em_1_1) { FactoryBot.create(:tenant, :parent => subtenant_tenant_eye_bee_em_1) }
+    let!(:subtenant_tenant_eye_bee_em_1_2) { FactoryBot.create(:tenant, :parent => subtenant_tenant_eye_bee_em_1) }
+
+    let!(:service_template_eye_bee_em) { FactoryBot.create(:service_template, :tenant => tenant_eye_bee_em) }
+    let!(:service_template_1)          { FactoryBot.create(:service_template, :tenant => subtenant_tenant_eye_bee_em_1) }
+    let!(:service_template_2)          { FactoryBot.create(:service_template, :tenant => subtenant_tenant_eye_bee_em_2) }
+    let!(:service_template_3)          { FactoryBot.create(:service_template, :tenant => subtenant_tenant_eye_bee_em_3) }
+    let!(:service_template_1_1)        { FactoryBot.create(:service_template, :tenant => subtenant_tenant_eye_bee_em_1_1) }
+
+    let!(:group_eye_bee_em_subtenant_tenant_1_2) { FactoryBot.create(:miq_group, :tenant => subtenant_tenant_eye_bee_em_1_2) }
+    let!(:user_subtenant_tenant_eye_bee_em_1_2) { FactoryBot.create(:user, :miq_groups => [group_eye_bee_em_subtenant_tenant_1_2]) }
+
+    it "shares service_template_1_1 for subtenant_tenant_eye_bee_em_2 (TEST CASE 1)" do
+      # ancestors for subtenant_tenant_eye_bee_em_1_2: tenant_eye_bee_em, subtenant_tenant_eye_bee_em_1
+      result = described_class.filtered(ServiceTemplate, :user => user_subtenant_tenant_eye_bee_em_1_2)
+      expect(result.ids).to match_array([service_template_eye_bee_em.id, service_template_1.id])
+
+      service_template_1_1.additional_tenants << subtenant_tenant_eye_bee_em_1_2
+      result = described_class.filtered(ServiceTemplate, :user => user_subtenant_tenant_eye_bee_em_1_2)
+
+      # ancestors for subtenant_tenant_eye_bee_em_1_2: tenant_eye_bee_em, subtenant_tenant_eye_bee_em_1
+      expect(result.ids).to match_array([service_template_eye_bee_em.id, service_template_1.id, service_template_1_1.id])
+    end
+
+    let!(:group_eye_bee_em_subtenant_tenant_3) { FactoryBot.create(:miq_group, :tenant => subtenant_tenant_eye_bee_em_3) }
+    let!(:user_subtenant_tenant_eye_bee_em_3) { FactoryBot.create(:user, :miq_groups => [group_eye_bee_em_subtenant_tenant_3]) }
+
+    it "shares service_template_1_1 for subtenant_tenant_eye_bee_em_3 (TEST CASE 2)" do
+      # ancestors for subtenant_tenant_eye_bee_em_3: tenant_eye_bee_em
+      result = described_class.filtered(ServiceTemplate, :user => user_subtenant_tenant_eye_bee_em_3)
+
+      expect(result.ids).to match_array([service_template_eye_bee_em.id, service_template_3.id])
+
+      service_template_1_1.additional_tenants << subtenant_tenant_eye_bee_em_3
+      result = described_class.filtered(ServiceTemplate, :user => user_subtenant_tenant_eye_bee_em_3)
+
+      expect(result.ids).to match_array([service_template_eye_bee_em.id, service_template_3.id, service_template_1_1.id])
+    end
+
+    let!(:group_pineapple_3) { FactoryBot.create(:miq_group, :tenant => subtenant_tenant_pineapple_3) }
+    let!(:user_pineapple_3) { FactoryBot.create(:user, :miq_groups => [group_pineapple_3]) }
+
+    it "shares service_template_1_1 for subtenant_tenant_pineapple_3 (TEST CASE 3)" do
+      # no ancestors for tenant_pineapple_3
+      result = described_class.filtered(ServiceTemplate, :user => user_pineapple_3)
+      expect(result.ids).to be_empty
+
+      service_template_1_1.additional_tenants << subtenant_tenant_pineapple_3
+      result = described_class.filtered(ServiceTemplate, :user => user_pineapple_3)
+
+      expect(result.ids).to match_array([service_template_1_1.id])
+    end
+  end
+
+  # private method
+  describe ".select_from_order_columns" do
+    subject { described_class.new }
+    it "removes empty" do
+      expect(subject.select_from_order_columns([])).to eq([])
+      expect(subject.select_from_order_columns([nil])).to eq([])
+    end
+
+    it "removes string columns" do
+      expect(subject.select_from_order_columns(["name", "id", "vms.name", '"vms"."name"'])).to eq([])
+    end
+
+    it "removes ascending string columns" do
+      expect(subject.select_from_order_columns(ascenders(["name", "id", "vms.name", '"vms"."name"']))).to eq([])
+    end
+
+    # services.name desc (spec)
+    it "removes strings with sorting" do
+      expect(subject.select_from_order_columns(["name asc", "\"vms\".\"id\" desc", "id asc"])).to eq([])
+    end
+
+    it "removes ordered nodes" do
+      attribute_id = Vm.arel_table["id"] # <Attribute<id>>
+      expect(subject.select_from_order_columns(ascenders([attribute_id]))).to eq([])
+    end
+
+    it "removes nodes" do
+      attribute_id = Vm.arel_table["id"] # <Attribute<id>>
+      expect(subject.select_from_order_columns([attribute_id])).to eq([])
+    end
+
+    it "keeps sorting in subselects" do
+      expect(subject.select_from_order_columns(ascenders(["(select a from x desc)"]))).to eq(["(select a from x desc)"])
+    end
+
+    it "keeps function in ascending node" do
+      expect(subject.select_from_order_columns(ascenders(["lower(name)"]))).to eq(["lower(name)"])
+    end
+
+    it "keeps functions as ordered strings" do
+      expect(subject.select_from_order_columns(["lower(name) asc"])).to eq(["lower(name)"])
+    end
+
+    def ascenders(cols)
+      cols.map { |c| Arel::Nodes::Ascending.new(c) }
     end
   end
 

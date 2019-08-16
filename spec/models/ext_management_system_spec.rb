@@ -1,4 +1,32 @@
 describe ExtManagementSystem do
+  describe ".with_tenant" do
+    # tenant_root
+    #   \___ tenant_eye_bee_em (service_template_eye_bee_em)
+    #     \__ subtenant_tenant_eye_bee_em_1 (ems_1)
+    #       \__ subtenant_tenant_eye_bee_em_1_1 (ems_1_1, ems_1_1_a)
+    #     \__ subtenant_tenant_eye_bee_em_3  (ems_3, ems_3_a)
+
+    let!(:tenant_root) { Tenant.seed }
+
+    let!(:tenant_eye_bee_em) { FactoryBot.create(:tenant, :parent => tenant_root) }
+    let!(:subtenant_tenant_eye_bee_em_1) { FactoryBot.create(:tenant, :parent => tenant_eye_bee_em) }
+    let!(:subtenant_tenant_eye_bee_em_3) { FactoryBot.create(:tenant, :parent => tenant_eye_bee_em) }
+
+    let!(:subtenant_tenant_eye_bee_em_1_1) { FactoryBot.create(:tenant, :parent => subtenant_tenant_eye_bee_em_1) }
+
+    let!(:ems_eye_bee_em) { FactoryBot.create(:ext_management_system, :tenant => tenant_eye_bee_em) }
+    let!(:ems_1)          { FactoryBot.create(:ext_management_system, :tenant => subtenant_tenant_eye_bee_em_1) }
+    let!(:ems_3)          { FactoryBot.create(:ext_management_system, :tenant => subtenant_tenant_eye_bee_em_3) }
+    let!(:ems_3_a)        { FactoryBot.create(:ext_management_system, :tenant => subtenant_tenant_eye_bee_em_3) }
+    let!(:ems_1_1)        { FactoryBot.create(:ext_management_system, :tenant => subtenant_tenant_eye_bee_em_1_1) }
+    let!(:ems_1_1_a)      { FactoryBot.create(:ext_management_system, :tenant => subtenant_tenant_eye_bee_em_1_1) }
+
+    it "lists ancestor service templates" do
+      expect(ExtManagementSystem.with_tenant(subtenant_tenant_eye_bee_em_1_1.id).ids).to match_array([ems_1_1.id, ems_1_1_a.id, ems_1.id, ems_eye_bee_em.id])
+      expect(ExtManagementSystem.with_tenant(subtenant_tenant_eye_bee_em_3.id).ids).to match_array([ems_3.id, ems_3_a.id, ems_eye_bee_em.id])
+    end
+  end
+
   it ".model_name_from_emstype" do
     described_class.leaf_subclasses.each do |klass|
       expect(described_class.model_name_from_emstype(klass.ems_type)).to eq(klass.name)
@@ -21,6 +49,8 @@ describe ExtManagementSystem do
       "ansible_tower_automation"    => "Ansible Tower Automation",
       "azure"                       => "Azure",
       "azure_network"               => "Azure Network",
+      "azure_stack"                 => "Azure Stack",
+      "azure_stack_network"         => "Azure Stack Network",
       "ec2"                         => "Amazon EC2",
       "ec2_network"                 => "Amazon EC2 Network",
       "ec2_ebs_storage"             => "Amazon EBS",
@@ -67,14 +97,7 @@ describe ExtManagementSystem do
 
     it "with removed permissions" do
       stub_vmdb_permission_store_with_types(["ems-type:vmwarews"]) do
-        expect(described_class.supported_types_and_descriptions_hash).to eq("vmwarews" => "VMware vCenter")
-      end
-    end
-
-    it "permissions.tmpl.yml should contain all EMS types" do
-      types = YAML.load_file(Rails.root.join("config/permissions.tmpl.yml"))
-      stub_vmdb_permission_store_with_types(types) do
-        expect(described_class.supported_types_and_descriptions_hash).to eq(all_types_and_descriptions)
+        expect(described_class.supported_types_and_descriptions_hash).to_not include("vmwarews")
       end
     end
   end
@@ -83,6 +106,32 @@ describe ExtManagementSystem do
     expected_types = %w(scvmm rhevm virtualcenter openstack_infra)
 
     expect(described_class.ems_infra_discovery_types).to match_array(expected_types)
+  end
+
+  it ".with_eligible_manager_types" do
+    v = FactoryBot.create(:ems_vmware)
+    r = FactoryBot.create(:ems_redhat)
+
+    expect(described_class.with_eligible_manager_types([v.class, r.class]).count).to eq(2)
+    expect(described_class.with_eligible_manager_types([v.class]).count).to eq(1)
+    expect(described_class.with_eligible_manager_types(r.class).count).to eq(1)
+  end
+
+  it "validates type" do
+    v = FactoryBot.create(:ems_vmware)
+    e = FactoryBot.create(:ext_management_system)
+    s = FactoryBot.create(:ems_storage)
+
+    expect([v.valid?, v.emstype]).to eq([true, 'vmwarews'])
+    expect([e.valid?, e.emstype]).to eq([true, 'vmwarews'])
+    expect([s.valid?, s.emstype]).to eq([true, 'swift'])
+    expect { ManageIQ::Providers::BaseManager.new(:hostname => "abc", :name => "abc").validate! }.to raise_error(ActiveRecord::RecordInvalid)
+    expect { ManageIQ::Providers::InfraManager.new(:hostname => "abc", :name => "abc").validate! }.to raise_error(ActiveRecord::RecordInvalid)
+    expect { ManageIQ::Providers::CloudManager.new(:hostname => "abc", :name => "abc").validate! }.to raise_error(ActiveRecord::RecordInvalid)
+    expect { ManageIQ::Providers::AutomationManager.new(:hostname => "abc", :name => "abc").validate! }.to raise_error(ActiveRecord::RecordInvalid)
+    expect(ManageIQ::Providers::Vmware::InfraManager.new(:hostname => "abc", :name => "abc").validate!).to eq(true)
+    expect(ManageIQ::Providers::Foreman::ConfigurationManager.new(:hostname => "abc", :name => "abc").validate!).to eq(true)
+    expect(ManageIQ::Providers::Foreman::ProvisioningManager.new(:hostname => "abc", :name => "abc").validate!).to eq(true)
   end
 
   context "#ipaddress / #ipaddress=" do

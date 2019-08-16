@@ -37,7 +37,7 @@ class EvmDatabaseOps
     else
       msg = "Destination location: [#{database_opts[:local_file]}], does not have enough free disk space: [#{free_space} bytes] for database of size: [#{db_size} bytes]"
       _log.warn(msg)
-      MiqEvent.raise_evm_event_queue(MiqServer.my_server, "evm_server_db_backup_low_space", :event_details => msg)
+      defined?(::MiqEvent) && MiqEvent.raise_evm_event_queue(MiqServer.my_server, "evm_server_db_backup_low_space", :event_details => msg)
       raise MiqException::MiqDatabaseBackupInsufficientSpace, msg
     end
   end
@@ -55,7 +55,6 @@ class EvmDatabaseOps
     #   :remote_file_name => "backup_1",     - Provide a base file name for the uploaded file
 
     uri = with_file_storage(:backup, db_opts, connect_opts) do |database_opts|
-      validate_free_space(database_opts)
       backup_result = PostgresAdmin.backup(database_opts)
       backup_result
     end
@@ -67,11 +66,6 @@ class EvmDatabaseOps
     # db_opts and connect_opts similar to .backup
 
     uri = with_file_storage(:dump, db_opts, connect_opts) do |database_opts|
-      # For database dumps, this isn't going to be as accurate (since the dump
-      # size will probably be larger than the calculated BD size), but it still
-      # won't hurt to do as a generic way to get a rough idea if we have enough
-      # disk space or the appliance for the task.
-      validate_free_space(database_opts)
       PostgresAdmin.backup_pg_dump(database_opts)
     end
     _log.info("[#{merged_db_opts(db_opts)[:dbname]}] database has been dumped up to file: [#{uri}]")
@@ -168,6 +162,16 @@ class EvmDatabaseOps
         if action == :restore
           yield(db_opts, backup_type)
         else
+          if file_storage.class <= MiqGenericMountSession
+            # Only check free space on "mountable" storages
+            #
+            # For database dumps, this isn't going to be as accurate (since the
+            # dump size will probably be larger than the calculated DB size), but
+            # it still won't hurt to do as a generic way to get a rough idea if
+            # we have enough disk space on the appliance for the task.
+            free_space_opts = db_opts.merge(:local_file => file_storage.uri_to_local_path(uri))
+            validate_free_space(free_space_opts)
+          end
           yield(db_opts)
         end
       end
@@ -186,13 +190,8 @@ class EvmDatabaseOps
     end
 
     MiqRegion.replication_type = :none
-    60.times do
-      break if VmdbDatabaseConnection.where("application_name LIKE 'pglogical manager%'").count.zero?
-      _log.info("Waiting for pglogical connections to close...")
-      sleep 5
-    end
 
-    connection_count = backup_type == :basebackup ? VmdbDatabaseConnection.unscoped.count : VmdbDatabaseConnection.count
+    connection_count = backup_type == :basebackup ? VmdbDatabaseConnection.unscoped.where(:backend_type => "client backend").count : VmdbDatabaseConnection.count
     if connection_count > 1
       message = "Database restore failed. #{connection_count - 1} connections remain to the database."
       _log.error(message)

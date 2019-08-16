@@ -29,7 +29,8 @@ class DialogField < ApplicationRecord
                                   :message => "Field Name %{value} is reserved."}
 
   default_value_for :required, false
-  default_value_for(:visible, :allows_nil => false) { true }
+  default_value_for(:visible) { true }
+  validates :visible, inclusion: { in: [ true, false ] }
   default_value_for :load_values_on_init, true
 
   serialize :values
@@ -99,6 +100,12 @@ class DialogField < ApplicationRecord
   def initialize_value_context
     if @value.blank?
       @value = dynamic ? values_from_automate : default_value
+    end
+  end
+
+  def initialize_static_values
+    if @value.blank? && !dynamic
+      @value = default_value
     end
   end
 

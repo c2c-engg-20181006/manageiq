@@ -1,94 +1,164 @@
-describe TransformationMapping do
-  let(:src) { FactoryBot.create(:ems_cluster) }
-  let(:dst) { FactoryBot.create(:ems_cluster) }
-  let(:vm)  { FactoryBot.create(:vm_vmware, :ems_cluster => src) }
+RSpec.describe TransformationMapping, :v2v do
+  let(:src_ems_vmware)    { FactoryBot.create(:ems_vmware) }
+  let(:dst_ems_redhat)    { FactoryBot.create(:ems_redhat) }
+  let(:dst_ems_openstack) { FactoryBot.create(:ems_openstack) }
 
-  let(:mapping) do
-    FactoryBot.create(
-      :transformation_mapping,
-      :transformation_mapping_items => [TransformationMappingItem.new(:source => src, :destination => dst)]
-    )
+  let(:src_cluster_vmware) { FactoryBot.create(:ems_cluster, :ext_management_system => src_ems_vmware) }
+  let(:dst_cluster_redhat) { FactoryBot.create(:ems_cluster, :ext_management_system => dst_ems_redhat) }
+
+  let(:src_hosts_vmware) { FactoryBot.create_list(:host_vmware, 1, :ems_cluster => src_cluster_vmware) }
+  let(:dst_hosts_redhat) { FactoryBot.create_list(:host_redhat, 1, :ems_cluster => dst_cluster_redhat) }
+
+  let(:src_storages_vmware) { FactoryBot.create_list(:storage, 1, :hosts => src_hosts_vmware) }
+  let(:dst_storages_redhat) { FactoryBot.create_list(:storage, 1, :hosts => dst_hosts_redhat) }
+
+  let(:src_lan_vmware) { FactoryBot.create(:lan) }
+  let(:dst_lan_redhat) { FactoryBot.create(:lan) }
+
+  let(:dst_cloud_tenant_openstack) { FactoryBot.create(:cloud_tenant, :ext_management_system => dst_ems_openstack) }
+
+  let(:mapping_redhat) do
+    FactoryBot.create(:transformation_mapping).tap do |tm|
+      FactoryBot.create(:transformation_mapping_item,
+        :source                 => src_cluster_vmware,
+        :destination            => dst_cluster_redhat,
+        :transformation_mapping => tm
+      )
+      FactoryBot.create(:transformation_mapping_item,
+        :source                 => src_storages_vmware.first,
+        :destination            => dst_storages_redhat.first,
+        :transformation_mapping => tm
+      )
+      FactoryBot.create(:transformation_mapping_item,
+        :source                 => src_lan_vmware,
+        :destination            => dst_lan_redhat,
+        :transformation_mapping => tm
+      )
+    end
   end
 
-  describe '#destination' do
+  let(:mapping_openstack) do
+    FactoryBot.create(:transformation_mapping).tap do |tm|
+      tm.transformation_mapping_items = [
+        FactoryBot.create(:transformation_mapping_item,
+          :source                 => src_cluster_vmware,
+          :destination            => dst_cloud_tenant_openstack,
+          :transformation_mapping => tm
+        )
+      ]
+    end
+  end
+
+  context '#destination' do
     it "finds the destination" do
-      expect(mapping.destination(src)).to eq(dst)
+      expect(mapping_redhat.destination(src_cluster_vmware)).to eq(dst_cluster_redhat)
     end
 
     it "returns nil for unmapped source" do
-      expect(mapping.destination(FactoryBot.create(:ems_cluster))).to be_nil
+      expect(mapping_redhat.destination(FactoryBot.create(:ems_cluster))).to be_nil
     end
   end
 
-  describe '#service_templates' do
+  context '#service_templates' do
     let(:plan) { FactoryBot.create(:service_template_transformation_plan) }
-    before { FactoryBot.create(:service_resource, :resource => mapping, :service_template => plan) }
+    before { FactoryBot.create(:service_resource, :resource => mapping_redhat, :service_template => plan) }
 
     it 'finds the transformation plans' do
-      expect(mapping.service_templates).to match([plan])
+      expect(mapping_redhat.service_templates).to match([plan])
     end
   end
 
-  describe '#search_vms_and_validate' do
-    let(:vm) { FactoryBot.create(:vm_vmware, :name => 'test_vm', :ems_cluster => src, :ext_management_system => FactoryBot.create(:ext_management_system)) }
-    let(:vm2) { FactoryBot.create(:vm_vmware, :ems_cluster => src, :ext_management_system => FactoryBot.create(:ext_management_system)) }
-    let(:inactive_vm) { FactoryBot.create(:vm_vmware, :name => 'test_vm_inactive', :ems_cluster => src, :ext_management_system => nil) }
-    let(:storage) { FactoryBot.create(:storage) }
-    let(:lan) { FactoryBot.create(:lan) }
-    let(:nic) { FactoryBot.create(:guest_device_nic, :lan => lan) }
+  context '#search_vms_and_validate' do
+    let(:nics) { FactoryBot.create_list(:guest_device_nic, 1, :lan => src_lan_vmware) }
+    let(:hardware) { FactoryBot.create(:hardware, :guest_devices => nics) }
 
-    before do
-      mapping.transformation_mapping_items << TransformationMappingItem.new(:source => storage, :destination => storage)
-      mapping.transformation_mapping_items << TransformationMappingItem.new(:source => lan, :destination => lan)
-      vm.storages << storage
-      vm.hardware = FactoryBot.create(:hardware, :guest_devices => [nic])
+    let!(:vm) do
+      FactoryBot.create(
+        :vm_vmware,
+        :name                  => 'test_vm',
+        :ems_cluster           => src_cluster_vmware,
+        :ext_management_system => src_cluster_vmware.ext_management_system,
+        :storages              => src_storages_vmware,
+        :hardware              => hardware
+      )
+    end
+
+    let(:vm2) do
+      FactoryBot.create(
+        :vm_vmware,
+        :ems_cluster           => src_cluster_vmware,
+        :ext_management_system => src_cluster_vmware.ext_management_system,
+        :storages              => src_storages_vmware
+      )
+    end
+
+    let(:inactive_vm) do
+      FactoryBot.create(
+        :vm_vmware,
+        :name                  => 'test_vm_inactive',
+        :ems_cluster           => src_cluster_vmware,
+        :ext_management_system => nil
+      )
     end
 
     context 'with VM list' do
       context 'returns invalid vms' do
+        it 'if VM has an invalid name in rhevm' do
+          name = ' not allowed'
+          FactoryBot.create(:vm_vmware, :name => name, :ems_cluster => src_cluster_vmware, :ext_management_system => src_ems_vmware)
+          result = mapping_redhat.search_vms_and_validate(['name' => name])
+          expect(result['invalid'].first.reason).to eq(TransformationMapping::VmMigrationValidator::VM_UNSUPPORTED_NAME)
+        end
+
+        it 'if VM has an invalid name in openstack' do
+          name = 7.chr # beep, non-printable
+          FactoryBot.create(:vm_vmware, :name => name, :ems_cluster => src_cluster_vmware, :ext_management_system => src_ems_vmware)
+          result = mapping_openstack.search_vms_and_validate(['name' => name])
+          expect(result['invalid'].first.reason).to eq(TransformationMapping::VmMigrationValidator::VM_UNSUPPORTED_NAME)
+        end
+
         it 'if VM does not exist' do
-          result = mapping.search_vms_and_validate(['name' => 'vm1'])
+          result = mapping_redhat.search_vms_and_validate(['name' => 'vm1'])
           expect(result['invalid'].first.reason).to eq(TransformationMapping::VmMigrationValidator::VM_NOT_EXIST)
         end
 
         it 'if VM is inactive' do
           inactive_vm.storages << FactoryBot.create(:storage, :name => 'storage_for_inactive_vm')
-          result = mapping.search_vms_and_validate(['name' => 'test_vm_inactive'])
+          result = mapping_redhat.search_vms_and_validate(['name' => 'test_vm_inactive'])
           expect(result['invalid'].first.reason).to eq(TransformationMapping::VmMigrationValidator::VM_INACTIVE)
         end
 
         it "if VM's cluster is not in the mapping" do
           FactoryBot.create(
             :vm_vmware,
-            :name                  => 'vm2',
             :ems_cluster           => FactoryBot.create(:ems_cluster, :name => 'cluster1'),
             :ext_management_system => FactoryBot.create(:ext_management_system)
           )
-          result = mapping.search_vms_and_validate(['name' => 'vm2'])
+          result = mapping_redhat.search_vms_and_validate(['name' => 'vm2'])
           expect(result['invalid'].first.reason).to match(/not_exist/)
         end
 
         it "if VM's storages are not all in the mapping" do
           vm.storages << FactoryBot.create(:storage, :name => 'storage2')
-          result = mapping.search_vms_and_validate(['name' => vm.name])
+          result = mapping_redhat.search_vms_and_validate(['name' => vm.name])
           expect(result['invalid'].first.reason).to match(/Mapping source not found - storages: storage2/)
         end
 
         it "if VM's lans are not all in the mapping" do
           vm.hardware.guest_devices << FactoryBot.create(:guest_device_nic, :lan =>FactoryBot.create(:lan, :name => 'lan2'))
-          result = mapping.search_vms_and_validate(['name' => vm.name])
+          result = mapping_redhat.search_vms_and_validate(['name' => vm.name])
           expect(result['invalid'].first.reason).to match(/Mapping source not found - lans: lan2/)
         end
 
         it "if any source is invalid" do
           vm.storages << FactoryBot.create(:storage, :name => 'storage2')
           vm.hardware.guest_devices << FactoryBot.create(:guest_device_nic, :lan =>FactoryBot.create(:lan, :name => 'lan2'))
-          result = mapping.search_vms_and_validate(['name' => vm.name])
+          result = mapping_redhat.search_vms_and_validate(['name' => vm.name])
           expect(result['invalid'].first.reason).to match(/Mapping source not found - storages: storage2. lans: lan2/)
         end
 
         it 'if VM is in another migration plan' do
-          %w(Queued Approved Active).each do |status|
+          %w[Queued Approved Active].each do |status|
             FactoryBot.create(
               :service_resource,
               :resource         => vm,
@@ -96,7 +166,7 @@ describe TransformationMapping do
               :status           => status
             )
 
-            result = mapping.search_vms_and_validate(['name' => vm.name])
+            result = mapping_redhat.search_vms_and_validate(['name' => vm.name])
             expect(result['invalid'].first.reason).to match(/in_other_plan/)
           end
         end
@@ -109,20 +179,20 @@ describe TransformationMapping do
             :status           => 'Completed'
           )
 
-          result = mapping.search_vms_and_validate(['name' => vm.name])
+          result = mapping_redhat.search_vms_and_validate(['name' => vm.name])
           expect(result['invalid'].first.reason).to match(/migrated/)
         end
       end
 
       it 'returns valid vms' do
-        result = mapping.search_vms_and_validate(['name' => vm.name])
+        result = mapping_redhat.search_vms_and_validate(['name' => vm.name])
         expect(result['valid'].first.reason).to eq(TransformationMapping::VmMigrationValidator::VM_VALID)
         expect(result['valid'].first.ems_cluster_id).to eq(vm.ems_cluster_id.to_s)
       end
 
       it 'returns conflict vms' do
-        FactoryBot.create(:vm_vmware, :name => 'test_vm', :ems_cluster => src, :ext_management_system => FactoryBot.create(:ext_management_system))
-        result = mapping.search_vms_and_validate(['name' => vm.name])
+        FactoryBot.create(:vm_vmware, :name => 'test_vm', :ems_cluster => src_cluster_vmware, :ext_management_system => FactoryBot.create(:ext_management_system))
+        result = mapping_redhat.search_vms_and_validate(['name' => vm.name])
         expect(result['conflicted'].first.reason).to eq(TransformationMapping::VmMigrationValidator::VM_CONFLICT)
       end
     end
@@ -137,7 +207,7 @@ describe TransformationMapping do
           :service_template => service_template,
           :status           => "Active"
         )
-        result = mapping.search_vms_and_validate(['name' => vm2.name], service_template.id.to_s)
+        result = mapping_redhat.search_vms_and_validate(['name' => vm2.name], service_template.id.to_s)
         expect(result['valid'].first.reason).to match(/ok/)
       end
 
@@ -151,14 +221,14 @@ describe TransformationMapping do
           :service_template => service_template,
           :status           => "Active"
         )
-        result = mapping.search_vms_and_validate(['name' => vm2.name], service_template2.id.to_s)
+        result = mapping_redhat.search_vms_and_validate(['name' => vm2.name], service_template2.id.to_s)
         expect(result['invalid'].first.reason).to match(/in_other_plan/)
       end
     end
 
     context 'without VM list' do
       it 'returns valid vms' do
-        result = mapping.search_vms_and_validate
+        result = mapping_redhat.search_vms_and_validate
         expect(result['valid'].count).to eq(1)
       end
 
@@ -169,7 +239,7 @@ describe TransformationMapping do
           :ems_cluster           => FactoryBot.create(:ems_cluster, :name => 'cluster1'),
           :ext_management_system => FactoryBot.create(:ext_management_system)
         )
-        result = mapping.search_vms_and_validate
+        result = mapping_redhat.search_vms_and_validate
         expect(result['valid'].count).to eq(1)
       end
     end

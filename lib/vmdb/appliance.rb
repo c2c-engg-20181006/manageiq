@@ -11,7 +11,12 @@ module Vmdb
     end
 
     def self.CODENAME
-      "Ivanchuk".freeze
+      "Jansa".freeze
+    end
+
+    def self.RELEASE
+      release_file = File.join(File.expand_path(Rails.root), "RELEASE")
+      File.exist?(release_file) ? File.read(release_file).strip : self.CODENAME
     end
 
     def self.BANNER
@@ -36,6 +41,18 @@ module Vmdb
       "#{self.PRODUCT_NAME}/#{self.VERSION}".freeze
     end
 
+    def self.check_automate_disk_version_against_db(fh)
+      ae_domains = MiqAeDomain.where(:source => MiqAeDomain::SYSTEM_SOURCE)
+      ae_domains.each do |domain|
+        if domain.version.blank? || domain.available_version.blank?
+          fh.warn("Cannot check #{domain.name} Automate domain version because version information not found")
+        elsif domain.version != domain.available_version
+          fh.warn("#{domain.name} domain version on disk differs from db version:")
+          fh.warn("Current version - #{domain.version}, Available version - #{domain.available_version}")
+        end
+      end
+    end
+
     def self.log_config(*args)
       options = args.extract_options!
       fh = options[:logger] || $log
@@ -45,11 +62,13 @@ module Vmdb
       fh.info(init_msg)
       fh.info(border)
 
+      fh.info("Release: #{self.RELEASE}")
       fh.info("Version: #{self.VERSION}")
       fh.info("Build:   #{self.BUILD}")
       fh.info("Codename: #{self.CODENAME}")
       fh.info("RUBY Environment:  #{Object.const_defined?(:RUBY_DESCRIPTION) ? RUBY_DESCRIPTION : "ruby #{RUBY_VERSION} (#{RUBY_RELEASE_DATE} patchlevel #{RUBY_PATCHLEVEL}) [#{RUBY_PLATFORM}]"}")
       fh.info("RAILS Environment: #{Rails.env} version #{Rails.version}")
+      check_automate_disk_version_against_db(fh)
 
       fh.info("VMDB settings:")
       VMDBLogger.log_hashes(fh, ::Settings, :filter => Vmdb::Settings::PASSWORD_FIELDS)
@@ -82,7 +101,7 @@ module Vmdb
         startup.info("Server EVM id and name: #{s.id} #{s.name}")
 
         startup.info("Currently assigned server roles:")
-        s.assigned_server_roles(:include => :server_role).each { |r| startup.info("Role: #{r.server_role.name}, Priority: #{r.priority}") }
+        s.assigned_server_roles.includes(:server_role).each { |r| startup.info("Role: #{r.server_role.name}, Priority: #{r.priority}") }
 
         issue = `cat /etc/issue 2> /dev/null` rescue nil
         startup.info("OS: #{issue.chomp}") unless issue.blank?

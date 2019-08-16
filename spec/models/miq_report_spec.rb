@@ -886,6 +886,56 @@ describe MiqReport do
       expect(report.column_is_hidden?(:ems_ref)).to be_truthy
       expect(report.column_is_hidden?(:vendor)).to be_falsey
     end
+
+    context "columns are hidden thanks to method" do
+      let(:report) do
+        MiqReport.new(
+          :name        => "VMs",
+          :title       => "Virtual Machines",
+          :db          => "Vm",
+          :cols        => %w[name guid hostname ems_ref vendor],
+          :col_order   => %w[name hostname vendor guid emf_ref],
+          :headers     => %w[Name Host Vendor Guid EMS],
+          :col_options => {"name" => {:display_method => :user_super_admin?}}
+        )
+      end
+
+      let(:test_controller) do
+        class TestController
+          # when this method returns true it means
+          # that column is displayed
+          DISPLAY_GTL_METHODS = [
+            :user_super_admin?
+          ].freeze
+
+          def user_super_admin?
+            User.current_user.super_admin_user?
+          end
+        end
+
+        TestController.new
+      end
+
+      let(:user) { FactoryBot.create(:user) }
+
+      it "hides column defined in #col_options with display_method display_method is returning false" do
+        User.with_user(user) do
+          expect(report.column_is_hidden?(:name, test_controller)).to be_truthy
+          expect(report.column_is_hidden?(:ems_ref, test_controller)).to be_falsey
+          expect(report.column_is_hidden?(:vendor, test_controller)).to be_falsey
+        end
+      end
+
+      let(:user_admin) { FactoryBot.create(:user_admin) }
+
+      it "doesn't hide column defined in #col_options when display_method is returning true" do
+        User.with_user(user_admin) do
+          expect(report.column_is_hidden?(:name, test_controller)).to be_falsey
+          expect(report.column_is_hidden?(:ems_ref, test_controller)).to be_falsey
+          expect(report.column_is_hidden?(:vendor, test_controller)).to be_falsey
+        end
+      end
+    end
   end
 
   context "chargeback reports" do
@@ -1101,6 +1151,33 @@ describe MiqReport do
         miq_report_result_detail = miq_task.miq_report_result.miq_report_result_details.first
         expect(miq_report_result_detail.data).to include(time_str_hst)
       end
+    end
+  end
+
+  context '.get_col_info' do
+    it "calls MiqExpression" do
+      expect(MiqExpression).to receive(:parse_field_or_tag).once
+      MiqReport.get_col_info('Vm-name')
+    end
+
+    it "is numeric for id columns" do
+      expect(MiqReport.get_col_info('Vm-id')[:numeric]).to eq(true)
+    end
+
+    it "is not numeric for string columns" do
+      expect(MiqReport.get_col_info('Vm-name')[:numeric]).to eq(false)
+    end
+
+    it "has default_format" do
+      expect(MiqReport.get_col_info('Vm-id')[:default_format]).to be_present
+    end
+
+    it "has available_formats" do
+      expect(MiqReport.get_col_info('Vm-id')[:available_formats]).to be_present
+    end
+
+    it "has data_type" do
+      expect(MiqReport.get_col_info('Vm-name')[:data_type]).to eq(:string)
     end
   end
 end

@@ -16,7 +16,7 @@ class MiqGroup < ApplicationRecord
   has_many   :miq_product_features, :through => :miq_user_role
   has_many   :authentications, :dependent => :nullify
 
-  virtual_delegate :miq_user_role_name, :to => :entitlement, :allow_nil => true
+  virtual_delegate :miq_user_role_name, :to => :entitlement, :allow_nil => true, :type => :string
   virtual_column :read_only,          :type => :boolean
   virtual_has_one :sui_product_features, :class_name => "Array"
 
@@ -41,6 +41,7 @@ class MiqGroup < ApplicationRecord
   include TimezoneMixin
   include TenancyMixin
   include CustomActionsMixin
+  include ExternalUrlMixin
 
   alias_method :current_tenant, :tenant
 
@@ -236,8 +237,7 @@ class MiqGroup < ApplicationRecord
     tenant_full_name = (tenant.ancestors.map(&:name) + [tenant.name]).join("/")
 
     create_with(
-      :description         => "Tenant #{tenant_full_name} access",
-      :default_tenant_role => MiqUserRole.default_tenant_role
+      :description => "Tenant #{tenant_full_name} access"
     ).find_or_create_by!(
       :group_type => TENANT_GROUP,
       :tenant_id  => tenant.id,

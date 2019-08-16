@@ -50,19 +50,16 @@ class InfraConversionJob < Job
     # valid states: %w(migrated pending finished active queued)
   end
 
-  def start
-    # TransformationCleanup 3 things:
-    #  - kill v2v: ignored because no converion_host is there yet in the original automate-based logic
-    #  - power_on: ignored
-    #  - check_power_on: ignore
+  # Temporary method to allow switching from InfraConversionJob to Automate.
+  # In Automate, another method waits for workflow_runner to be 'automate'.
+  def handover_to_automate
+    migration_task.update_options(:workflow_runner => 'automate')
+  end
 
-    migration_task.preflight_check
-    _log.info(prep_message("Preflight check passed, task.state=#{migration_task.state}. continue ..."))
+  def start
+    migration_task.update!(:state => 'migrate')
+    handover_to_automate
     queue_signal(:poll_conversion)
-  rescue => error
-    message = prep_message("Preflight check has failed: #{error}")
-    _log.info(message)
-    abort_conversion(message, 'error')
   end
 
   def abort_conversion(message, status)

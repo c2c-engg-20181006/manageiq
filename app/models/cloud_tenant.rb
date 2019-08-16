@@ -4,6 +4,7 @@ class CloudTenant < ApplicationRecord
 
   include NewWithTypeStiMixin
   include CustomActionsMixin
+  include ExternalUrlMixin
   extend ActsAsTree::TreeWalker
 
   belongs_to :ext_management_system, :foreign_key => "ems_id"
@@ -57,7 +58,7 @@ class CloudTenant < ApplicationRecord
       :userid => userid
     }
     queue_opts = {
-      :class_name  => class_by_ems(ext_management_system),
+      :class_name  => class_by_ems(ext_management_system).name,
       :method_name => 'create_cloud_tenant',
       :priority    => MiqQueue::HIGH_PRIORITY,
       :role        => 'ems_operations',
@@ -156,7 +157,7 @@ class CloudTenant < ApplicationRecord
     ems = ExtManagementSystem.find(ems_id)
 
     MiqQueue.put_unless_exists(
-      :class_name  => ems.class,
+      :class_name  => ems.class.name,
       :instance_id => ems_id,
       :method_name => 'sync_cloud_tenants_with_tenants',
       :zone        => ems.my_zone

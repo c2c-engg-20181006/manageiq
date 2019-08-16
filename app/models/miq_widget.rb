@@ -42,8 +42,8 @@ class MiqWidget < ApplicationRecord
   end
 
   virtual_column :status,         :type => :string,    :uses => :miq_task
-  virtual_delegate :status_message, :to => "miq_task.message", :allow_nil => true, :default => "Unknown"
-  virtual_delegate :queued_at, :to => "miq_task.created_on", :allow_nil => true
+  virtual_delegate :status_message, :to => "miq_task.message", :allow_nil => true, :default => "Unknown", :type => :string
+  virtual_delegate :queued_at, :to => "miq_task.created_on", :allow_nil => true, :type => :datetime
   virtual_column :last_run_on,    :type => :datetime,  :uses => :miq_schedule
 
   def row_count(row_count_param = nil)
@@ -481,9 +481,7 @@ class MiqWidget < ApplicationRecord
       if filename
         $log.info("Widget: [#{widget.description}] file has been updated on disk, synchronizing with model")
         ["enabled", "visibility"].each { |a| attrs.delete(a) } # Don't updates these because they may have been modofoed by the end user.
-        widget.updated_at = Time.now.utc
-        widget.update_attributes(attrs)
-        widget.save!
+        widget.update!(attrs)
       end
     else
       $log.info("Widget: [#{attrs["description"]}] file has been added to disk, adding to model")
@@ -492,6 +490,10 @@ class MiqWidget < ApplicationRecord
 
     widget.sync_schedule(schedule_info)
     widget
+  end
+
+  def filter_for_schedule
+    {"=" => {"field" => "MiqWidget-id", "value" => id}}
   end
 
   def sync_schedule(schedule_info)
@@ -513,11 +515,12 @@ class MiqWidget < ApplicationRecord
       raise _("Unsupported interval '%{interval}'") % {:interval => interval}
     end
 
-    sched = MiqSchedule.create!(
+    sched = existing_schedule
+    sched ||= MiqSchedule.create!(
       :name          => description,
       :description   => description,
       :sched_action  => {:method => "generate_widget"},
-      :filter        => MiqExpression.new("=" => {"field" => "MiqWidget-id", "value" => id}),
+      :filter        => MiqExpression.new(filter_for_schedule),
       :resource_type => self.class.name,
       :run_at        => {
         :interval   => {:value => value, :unit  => unit},
@@ -532,6 +535,19 @@ class MiqWidget < ApplicationRecord
     _log.debug("Widget: [#{title}] created schedule: [#{sched.inspect}]")
 
     sched
+  end
+
+  def existing_schedule
+    return nil if (sched = MiqSchedule.find_by(:name => description)).nil?
+
+    # return existing sheduler if filter referr to the same widget
+    return sched if sched.filter.exp == filter_for_schedule
+
+    # change name of existed schedule in case it is in use
+    suffix = Time.new.utc.to_s
+    _log.warn("Schedule #{sched.name} already exists, renaming it to `#{sched.name} #{suffix}`")
+    sched.update(:name => "#{sched.name} #{suffix}", :description => "#{sched.description} #{suffix}")
+    nil
   end
 
   def self.seed

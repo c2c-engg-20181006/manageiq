@@ -16,7 +16,6 @@
   - host_aggregate
   - flavor
   - floating_ip
-  - bottlenecks
   - chargeback
   - catalog
   - cloud_network
@@ -74,7 +73,6 @@
   - physical_server
   - physical_storage
   - physical_infra_topology
-  - planning
   - policy_import_export
   - provider_foreman_explorer
   - pxe
@@ -161,12 +159,10 @@
   - storage_tag
   - timeline
   - vm_check_compliance
-  - vm_console
-  - vm_webmks_console
   - vm_cloud_explorer
   - vm_explorer
   - vm_infra_explorer
-  - vm_vnc_console
+  - vm_html5_console
   - vm_vmrc_console
   - cockpit_console
   - vm_perf
@@ -179,8 +175,8 @@
   - vm_chargeback
   - sui_services_view
   - sui_vm_details_view
-  - sui_vm_console
-  - sui_vm_web_console
+  - sui_vm_html5_console
+  - sui_vm_vmrc_console
   - sui_vm_tags
   - sui_orders_view
   - sui_notifications
@@ -191,7 +187,6 @@
   - about
   - automation_manager
   - embedded_automation_manager
-  - bottlenecks
   - chargeback
   - chargeback_reports
   - customization_template_view
@@ -243,7 +238,6 @@
   - physical_switch_view
   - physical_server_view
   - physical_storage_view
-  - planning
   - policy_log
   - policy_profile
   - policy_simulation
@@ -265,13 +259,11 @@
   - vm_view
   - vm_check_compliance
   - vm_compare
-  - vm_console
   - vm_drift
-  - vm_webmks_console
   - vm_cloud_explorer
   - vm_explorer
   - vm_infra_explorer
-  - vm_vnc_console
+  - vm_html5_console
   - vm_vmrc_console
   - cockpit_console
   - vm_perf
@@ -283,8 +275,8 @@
   - vm_chargeback
   - sui_services_view
   - sui_vm_details_view
-  - sui_vm_console
-  - sui_vm_web_console
+  - sui_vm_html5_console
+  - sui_vm_vmrc_console
   - sui_vm_tags
   - sui_notifications
 
@@ -325,12 +317,10 @@
   - provider_foreman_explorer
   - vm_clone
   - vm_compare
-  - vm_console
-  - vm_webmks_console
   - vm_cloud_explorer
   - vm_explorer
   - vm_infra_explorer
-  - vm_vnc_console
+  - vm_html5_console
   - vm_vmrc_console
   - cockpit_console
   - vm_drift
@@ -352,8 +342,8 @@
   - vm_chargeback
   - sui_services_view
   - sui_vm_details_view
-  - sui_vm_console
-  - sui_vm_web_console
+  - sui_vm_html5_console
+  - sui_vm_vmrc_console
   - sui_vm_start
   - sui_vm_stop
   - sui_vm_suspend
@@ -406,9 +396,7 @@
   - physical_server_view
   - physical_storage_view
   - physical_infra_topology_view
-  - host_new
   - host_compare
-  - host_discover
   - host_drift
   - host_edit
   - host_refresh
@@ -453,12 +441,10 @@
   - vm_check_compliance
   - vm_collect_running_processes
   - vm_compare
-  - vm_console
-  - vm_webmks_console
   - vm_cloud_explorer
   - vm_explorer
   - vm_infra_explorer
-  - vm_vnc_console
+  - vm_html5_console
   - vm_vmrc_console
   - cockpit_console
   - vm_drift
@@ -480,12 +466,12 @@
   - vm_chargeback
   - sui_services_view
   - sui_vm_details_view
-  - sui_vm_console
-  - sui_vm_web_console
-  - sui_vm_tags
+  - sui_vm_html5_console
+  - sui_vm_vmrc_console
   - sui_vm_start
   - sui_vm_stop
   - sui_vm_suspend
+  - sui_vm_tags
   - sui_notifications
 
 - :name: EvmRole-security
@@ -638,12 +624,10 @@
   - timeline
   - vm_check_compliance
   - vm_collect_running_processes
-  - vm_console
-  - vm_webmks_console
   - vm_cloud_explorer
   - vm_explorer
   - vm_infra_explorer
-  - vm_vnc_console
+  - vm_html5_console
   - vm_vmrc_console
   - cockpit_console
   - vm_compare
@@ -658,8 +642,8 @@
   - vm_chargeback
   - sui_services_view
   - sui_vm_details_view
-  - sui_vm_console
-  - sui_vm_web_console
+  - sui_vm_html5_console
+  - sui_vm_vmrc_console
   - sui_vm_tags
   - sui_notifications
 
@@ -727,12 +711,10 @@
   - storage_tag
   - timeline
   - vm_check_compliance
-  - vm_console
-  - vm_webmks_console
   - vm_cloud_explorer
   - vm_explorer
   - vm_infra_explorer
-  - vm_vnc_console
+  - vm_html5_console
   - vm_vmrc_console
   - cockpit_console
   - vm_compare
@@ -746,12 +728,102 @@
   - vm_chargeback
   - sui_services_view
   - sui_vm_details_view
-  - sui_vm_console
-  - sui_vm_web_console
+  - sui_vm_html5_console
+  - sui_vm_vmrc_console
   - sui_vm_tags
   - sui_orders_view
   - sui_orders_operations
   - sui_notifications
+
+- :name: EvmRole-user_global_region
+  :read_only: true
+  :miq_product_feature_identifiers:
+  - about
+  - chargeback
+  - dashboard
+  - ems_cluster_perf
+  - ems_cluster_show
+  - ems_cluster_show_list
+  - ems_cluster_tag
+  - ems_cluster_timeline
+  - ems_infra_show
+  - ems_infra_show_list
+  - ems_infra_tag
+  - ems_infra_timeline
+  - ems_physical_infra_console
+  - ems_physical_infra_show
+  - ems_physical_infra_show_list
+  - ems_physical_infra_tag
+  - ems_physical_infra_timeline
+  - event_streams_view
+  - host_perf
+  - host_show
+  - host_show_list
+  - host_tag
+  - host_timeline
+  - instance_guest_restart
+  - instance_miq_request_new
+  - instance_pause
+  - instance_resize
+  - instance_resume
+  - instance_retire
+  - instance_retire_now
+  - instance_shelve
+  - instance_shelve_offload
+  - instance_start
+  - instance_stop
+  - instance_suspend
+  - instance_terminate
+  - instance_view
+  - miq_report_run
+  - miq_report_saved_reports
+  - miq_report_schedules
+  - miq_report_view
+  - miq_request_admin
+  - miq_request_view
+  - miq_task_my_ui
+  - my_settings_default_views
+  - my_settings_time_profiles
+  - my_settings_visuals
+  - physical_chassis_view
+  - physical_infra_topology_view
+  - physical_rack_view
+  - physical_server_view
+  - physical_storage_view
+  - physical_switch_view
+  - resource_pool_show
+  - resource_pool_show_list
+  - resource_pool_tag
+  - rss
+  - service_view
+  - storage_perf
+  - storage_show
+  - storage_show_list
+  - storage_tag
+  - sui_notifications
+  - sui_orders_operations
+  - sui_orders_view
+  - sui_services_view
+  - sui_vm_details_view
+  - sui_vm_html5_console
+  - sui_vm_vmrc_console
+  - sui_vm_tags
+  - timeline
+  - vm_cloud_explorer
+  - vm_explorer
+  - vm_guest_restart
+  - vm_guest_shutdown
+  - vm_infra_explorer
+  - vm_miq_request_new
+  - vm_pause
+  - vm_reconfigure
+  - vm_reset
+  - vm_retire
+  - vm_retire_now
+  - vm_start
+  - vm_stop
+  - vm_suspend
+  - vm_view
 
 - :name: EvmRole-user_limited_self_service
   :read_only: true
@@ -834,12 +906,8 @@
   - service_retire_now
   - service_view
   - svc_catalog_provision
-  - vm_console
-  - vm_webmks_console
   - vm_clone
   - vm_cloud_explorer
-  - vm_console
-  - vm_webmks_console
   - vm_drift
   - vm_edit
   - vm_guest_restart
@@ -862,7 +930,7 @@
   - vm_timeline
   - vm_chargeback
   - vm_vmrc_console
-  - vm_vnc_console
+  - vm_html5_console
   - cockpit_console
   - sui
 
@@ -894,8 +962,6 @@
   - vm_cloud_explorer
   - vm_collect_running_processes
   - vm_compare
-  - vm_console
-  - vm_webmks_console
   - vm_drift
   - vm_explorer
   - vm_guest_restart
@@ -919,16 +985,16 @@
   - vm_timeline
   - vm_chargeback
   - vm_vmrc_console
-  - vm_vnc_console
+  - vm_html5_console
   - cockpit_console
   - sui_vm_details_view
-  - sui_vm_console
-  - sui_vm_web_console
-  - sui_vm_tags
+  - sui_vm_html5_console
+  - sui_vm_vmrc_console
   - sui_vm_retire
   - sui_vm_start
   - sui_vm_stop
   - sui_vm_suspend
+  - sui_vm_tags
   - sui_orders_view
   - sui_orders_operations
   - sui_notifications
@@ -946,7 +1012,6 @@
   - cloud_subnet
   - flavor
   - floating_ip
-  - bottlenecks
   - chargeback
   - catalog
   - cloud_tenant
@@ -959,7 +1024,6 @@
   - ems_infra
   - ems_physical_infra
   - host
-  - load_balancer
   - miq_ae_class_explorer
   - miq_ae_customization_explorer
   - miq_ae_class_import_export
@@ -976,7 +1040,6 @@
   - miq_request
   - miq_template
   - orchestration_stack
-  - planning
   - policy_import_export
   - provider_foreman_explorer
   - pxe
@@ -1007,7 +1070,6 @@
   - host_aggregate
   - all_vm_rules
   - flavor
-  - bottlenecks
   - chargeback
   - catalog
   - cloud_tenant
@@ -1033,7 +1095,6 @@
   - miq_request
   - miq_template
   - orchestration_stack
-  - planning
   - policy_import_export
   - provider_foreman_explorer
   - pxe
@@ -1157,7 +1218,6 @@
   - automation_manager_configured_system_view
   - automation_manager_providers_view
   - availability_zone_view
-  - bottlenecks
   - catalog_items_view
   - cloud_network_view
   - cloudobject_store_container_view
@@ -1208,7 +1268,6 @@
   - infra_topology
   - instance_view
   - iso_datastore_view
-  - load_balancer_view
   - miq_ae_class_log
   - miq_ae_domain_view
   - miq_report_saved_reports_view
@@ -1230,7 +1289,6 @@
   - physical_switch_view
   - physical_server_view
   - physical_storage_view
-  - planning
   - policy_log
   - provider_foreman_view
   - pxe_image_type_view

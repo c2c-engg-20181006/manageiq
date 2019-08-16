@@ -35,6 +35,7 @@ class EvmDatabase
     Classification
     CustomizationTemplate
     Dialog
+    ManageIQ::Providers::EmbeddedAnsible
     MiqAlert
     MiqAlertSet
     MiqDialog
@@ -147,7 +148,7 @@ class EvmDatabase
     monitor ||= ManageIQ::PostgresHaAdmin::FailoverMonitor.new(Rails.root.join("config", "ha_admin.yml"))
 
     configure_rails_handler(monitor)
-    configure_pglogical_handlers(monitor)
+    configure_logical_replication_handlers(monitor)
 
     _log.info("Starting database failover monitor")
     monitor.monitor_loop
@@ -169,7 +170,6 @@ class EvmDatabase
       ActiveRecord::Base.establish_connection(Rails.application.config.database_configuration[Rails.env])
 
       raise_server_event("db_failover_executed")
-      FileUtils.touch(Rails.root.join("tmp", "embedded_ansible_force_setup_run"))
       LinuxAdmin::Service.new("evmserverd").restart
     end
 
@@ -177,12 +177,12 @@ class EvmDatabase
   end
   private_class_method :configure_rails_handler
 
-  def self.configure_pglogical_handlers(monitor)
+  def self.configure_logical_replication_handlers(monitor)
     return unless MiqServer.my_server.has_active_role?("database_operations")
 
     local_db_conninfo = ActiveRecord::Base.connection.raw_connection.conninfo_hash.delete_blanks
     PglogicalSubscription.all.each do |s|
-      handler = ManageIQ::PostgresHaAdmin::PglogicalConfigHandler.new(:subscription => s.id, :conn_info => local_db_conninfo)
+      handler = ManageIQ::PostgresHaAdmin::LogicalReplicationConfigHandler.new(:subscription => s.id, :conn_info => local_db_conninfo)
       _log.info("Configuring database failover for replication subscription #{s.id} ")
 
       handler.after_failover do |new_conn_info|
@@ -193,5 +193,5 @@ class EvmDatabase
       monitor.add_handler(handler)
     end
   end
-  private_class_method :configure_pglogical_handlers
+  private_class_method :configure_logical_replication_handlers
 end

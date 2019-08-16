@@ -34,7 +34,7 @@ module Rbac
       FloatingIp
       Host
       HostAggregate
-      LoadBalancer
+      Lan
       MiddlewareDatasource
       MiddlewareDeployment
       MiddlewareDomain
@@ -61,13 +61,24 @@ module Rbac
       CloudNetwork
       CloudSubnet
       FloatingIp
-      LoadBalancer
       NetworkPort
       NetworkRouter
       SecurityGroup
     ).freeze
 
     BELONGSTO_FILTER_CLASSES = %w(
+      Container
+      ContainerBuild
+      ContainerGroup
+      ContainerImage
+      ContainerImageRegistry
+      ContainerNode
+      ContainerProject
+      ContainerReplicator
+      ContainerRoute
+      ContainerService
+      ContainerTemplate
+      ContainerVolume
       EmsCluster
       EmsFolder
       ExtManagementSystem
@@ -110,6 +121,7 @@ module Rbac
       'MiqRequest'             => :descendant_ids,
       'MiqRequestTask'         => nil, # tenant only
       'MiqTemplate'            => :ancestor_ids,
+      'OrchestrationStack'     => nil,
       'Provider'               => :ancestor_ids,
       'Service'                => :descendant_ids,
       'ServiceTemplate'        => :ancestor_ids,
@@ -125,6 +137,8 @@ module Rbac
       OwnershipMixin
       MiqRequest
     ).freeze
+
+    ADDITIONAL_TENANT_CLASSES = %w[ServiceTemplate].freeze
 
     include Vmdb::Logging
 
@@ -258,8 +272,11 @@ module Rbac
       if inline_view?(options, scope)
         inner_scope = scope.except(:select, :includes, :references)
         scope.includes_values.each { |hash| inner_scope = add_joins(klass, inner_scope, hash) }
+        if inner_scope.order_values.present?
+          inner_scope = apply_select(klass, inner_scope, select_from_order_columns(inner_scope.order_values))
+        end
         scope = scope.from(Arel.sql("(#{inner_scope.to_sql})").as(scope.table_name))
-                     .except(:offset, :limit, :order, :where)
+                     .except(:offset, :limit, :where)
 
         # the auth_count needs to come from the inner query (the query with the limit)
         if !options[:skip_counts] && (attrs[:apply_limit_in_sql] && limit)
@@ -310,6 +327,35 @@ module Rbac
         (scope.limit_value || scope.where_values_hash.present?) &&
         !scope.table_name&.include?(".") &&
         scope.respond_to?(:includes_values)
+    end
+
+    # Convert an order by column to the select columns
+    #
+    # We assume that all traditional columns are already in the select
+    # So this just adds the non columns in the order (i.e.: functions and subqueries)
+    #
+    # @param [Array] columns the order by clause
+    # @return [Array] columns useable in the select clause
+    #
+    # this method is similar to Connection#columns_for_distinct, but more aggressive
+    #
+    # For a query with a DISTINCT, all columns in the ORDER BY clause
+    # need to be in the SELECT clause. This method gives us the columns for the SELECT.
+    # We currently assume that all regular columns are already in the SELECT.
+    # So this is just returning the functions (e.g. LOWER(name))
+    def select_from_order_columns(columns)
+      columns.compact.map do |column|
+        if column.kind_of?(Arel::Nodes::Ordering)
+          column.expr
+        else
+          column = column.to_sql if column.respond_to?(:to_sql)
+          column.kind_of?(String) ? column.gsub(/ (DESC|ASC)/i, '') : column
+        end
+      end.reject do |column|
+        column.kind_of?(Arel::Attributes::Attribute) ||
+          column.kind_of?(Symbol) ||
+          (column.kind_of?(String) && column =~ /^("?[a-z_0-9]+"?[.])?"?[a-z_0-9]+"?$/i)
+      end
     end
 
     # This is a very primitive way of determining whether we want to skip
@@ -375,17 +421,13 @@ module Rbac
       return scope unless includes
       includes = Array(includes) unless includes.kind_of?(Enumerable)
       includes.each do |association, value|
-        if table_include?(klass, association)
+        reflection = klass.reflect_on_association(association)
+        if reflection && !reflection.polymorphic?
           scope = value ? scope.left_outer_joins(association => value) : scope.left_outer_joins(association)
+          scope = scope.distinct if reflection.try(:collection?)
         end
       end
       scope
-    end
-
-    # this is a reference to a non polymorphic table
-    def table_include?(target_klass, association)
-      reflection = target_klass.reflect_on_association(association)
-      reflection && !reflection.polymorphic?
     end
 
     def polymorphic_include?(target_klass, includes)
@@ -540,6 +582,18 @@ module Rbac
       scope.find_tags_by_grouping(filter, :ns => '*').reorder(nil)
     end
 
+    def scope_to_additional_tenants(scope, user, miq_group)
+      user_or_group = user || miq_group
+
+      tenant = user_or_group.try(:current_tenant)
+
+      if tenant && !tenant.root?
+        scope.additional_tenants_clause(tenant)
+      else
+        scope
+      end
+    end
+
     def scope_to_tenant(scope, user, miq_group)
       klass = scope.respond_to?(:klass) ? scope.klass : scope
       user_or_group = user || miq_group
@@ -550,8 +604,11 @@ module Rbac
     def scope_to_cloud_tenant(scope, user, miq_group)
       klass = scope.respond_to?(:klass) ? scope.klass : scope
       user_or_group = user || miq_group
-      tenant_id_clause = klass.tenant_id_clause(user_or_group)
-      klass.tenant_joins_clause(scope).where(tenant_id_clause)
+      if (tenant_id_clause = klass.tenant_id_clause(user_or_group))
+        klass.tenant_joins_clause(scope).where(tenant_id_clause)
+      else
+        scope
+      end
     end
 
     def scope_for_user_role_group(klass, scope, miq_group, user, managed_filters)
@@ -576,6 +633,10 @@ module Rbac
       end
     end
 
+    def scope_to_additional_tenants?(klass)
+      ADDITIONAL_TENANT_CLASSES.include?(safe_base_class(klass).name)
+    end
+
     ##
     # Main scoping method
     #
@@ -584,7 +645,16 @@ module Rbac
       # with a few manual exceptions (User, Tenant). Note that the classes in
       # TENANT_ACCESS_STRATEGY are a consolidated list of them.
       if klass.respond_to?(:scope_by_tenant?) && klass.scope_by_tenant?
-        scope = scope_to_tenant(scope, user, miq_group)
+        scope = scope.with_additional_tenants if scope_to_additional_tenants?(klass) # for eager load
+
+        tenant_scope = scope_to_tenant(scope, user, miq_group)
+
+        scope = if scope_to_additional_tenants?(klass)
+                  tenant_scope.or(scope_to_additional_tenants(scope, user, miq_group))
+                else
+                  tenant_scope
+                end
+
       elsif klass.respond_to?(:scope_by_cloud_tenant?) && klass.scope_by_cloud_tenant?
         scope = scope_to_cloud_tenant(scope, user, miq_group)
       end
@@ -700,7 +770,9 @@ module Rbac
     end
 
     def apply_select(klass, scope, extra_cols)
-      scope.select(scope.select_values.blank? ? klass.arel_table[Arel.star] : nil).select(extra_cols)
+      return scope if extra_cols.blank?
+
+      (scope.select_values.blank? ? scope.select(klass.arel_table[Arel.star]) : scope).select(extra_cols)
     end
 
     def get_belongsto_matches(blist, klass)
@@ -714,13 +786,43 @@ module Rbac
         # typically, this is the only one we want:
         vcmeta = vcmeta_list.last
 
-        if ([ExtManagementSystem, Host].any? { |x| vcmeta.kind_of?(x) } && klass <= VmOrTemplate) ||
-           (vcmeta.kind_of?(ManageIQ::Providers::NetworkManager)        && NETWORK_MODELS_FOR_BELONGSTO_FILTER.any? { |association_class| klass <= association_class.safe_constantize })
+        if belongsto_association_filtered?(vcmeta, klass)
           vcmeta.send(association_name).to_a
         else
           vcmeta_list.grep(klass) + vcmeta.descendants.grep(klass)
         end
       end.uniq
+    end
+
+    def belongsto_association_filtered?(vcmeta, klass)
+      if [ExtManagementSystem, Host].any? { |x| vcmeta.kind_of?(x) }
+        # Eject early if true
+        return true if associated_belongsto_models.any? { |associated| klass <= associated }
+      end
+
+      if vcmeta.kind_of?(ManageIQ::Providers::NetworkManager)
+        NETWORK_MODELS_FOR_BELONGSTO_FILTER.any? do |association_class|
+          klass <= association_class.safe_constantize
+        end
+      end
+    end
+
+    def associated_belongsto_models
+      [
+        VmOrTemplate,
+        Container,
+        ContainerBuild,
+        ContainerGroup,
+        ContainerImage,
+        ContainerImageRegistry,
+        ContainerNode,
+        ContainerProject,
+        ContainerReplicator,
+        ContainerRoute,
+        ContainerService,
+        ContainerTemplate,
+        ContainerVolume
+      ]
     end
 
     def get_belongsto_matches_for_host(blist)

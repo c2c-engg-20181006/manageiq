@@ -1,28 +1,23 @@
 ---
 - :name: dashboard_show
-  :description: Cloud Intel / Dashboard
+  :description: Overview / Dashboard
   :url: /dashboard/show
   :rbac_feature_name: dashboard_view
   :startup: true
 - :name: miq_report
-  :description: Cloud Intel / Reports
+  :description: Overview / Reports
   :url: /report/explorer
   :rbac_feature_name: miq_report
   :startup: true
+- :name: miq_capacity_utilization
+  :description: Overview / Utilization
+  :url: /utilization
+  :rbac_feature_name: utilization
+  :startup: true
 - :name: chargeback
-  :description: Cloud Intel / Chargeback
+  :description: Overview / Chargeback
   :url: /chargeback/explorer
   :rbac_feature_name: chargeback
-  :startup: true
-- :name: timelines
-  :description: Cloud Intel / Timelines
-  :url: /dashboard/timeline
-  :rbac_feature_name: timeline
-  :startup: true
-- :name: rss
-  :description: Cloud Intel / RSS
-  :url: /alert/show_list
-  :rbac_feature_name: rss
   :startup: true
 - :name: services
   :description: Services / My Services
@@ -169,6 +164,46 @@
   :url: /infra_topology
   :rbac_feature_name: infra_topology_view
   :startup: true
+- :name: physical_infra_overview
+  :description: Compute / Physical Infrastructure / Overview
+  :url: /physical_infra_overview/show
+  :rbac_feature_name: physical_infra_overview
+  :startup: true
+- :name: ems_physical_infra
+  :description: Compute / Physical Infrastructure / Providers
+  :url: /ems_physical_infra/show_list
+  :rbac_feature_name: ems_physical_infra_show_list
+  :startup: true
+- :name: physical_chassis
+  :description: Compute / Physical Infrastructure / Chassis
+  :url: /physical_chassis/show_list
+  :rbac_feature_name: physical_chassis_show_list
+  :startup: true
+- :name: physical_rack
+  :description: Compute / Physical Infrastructure / Racks
+  :url: /physical_rack/show_list
+  :rbac_feature_name: physical_rack_show_list
+  :startup: true
+- :name: physical_server
+  :description: Compute / Physical Infrastructure / Servers
+  :url: /physical_server/show_list
+  :rbac_feature_name: physical_server_show_list
+  :startup: true
+- :name: physical_storage
+  :description: Compute / Physical Infrastructure / Storages
+  :url: /physical_storage/show_list
+  :rbac_feature_name: physical_storage_show_list
+  :startup: true
+- :name: physical_switch
+  :description: Compute / Physical Infrastructure / Switches
+  :url: /physical_switch/show_list
+  :rbac_feature_name: physical_switch_show_list
+  :startup: true
+- :name: physical_infra_topology
+  :description: Compute / Physical Infrastructure / Topology
+  :url: /physical_infra_topology/show
+  :rbac_feature_name: physical_infra_topology
+  :startup: true
 - :name: container_dashboard
   :description: Compute / Containers / Overview
   :url: /container_dashboard
@@ -244,6 +279,21 @@
   :url: /container_topology
   :rbac_feature_name: container_topology_view
   :startup: true
+- :name: migration
+  :description: Migration / Migration Plans
+  :url: /migration/#plans
+  :rbac_feature_name: migration
+  :startup: true
+- :name: mappings
+  :description: Migration / Infrastructure Mappings
+  :url: /migration/#mappings
+  :rbac_feature_name: mappings
+  :startup: true
+- :name: migration_settings
+  :description: Migration / Migration Settings
+  :url: /migration/#settings
+  :rbac_feature_name: migration_settings
+  :startup: true
 - :name: configuration_management
   :description: Configuration / Management
   :url: provider_foreman/explorer
@@ -284,11 +334,6 @@
   :url: /network_port/show_list
   :rbac_feature_name: network_port_show_list
   :startup: true
-- :name: load_balancers
-  :description: Networks / Load Balancers
-  :url: /load_balancer/show_list
-  :rbac_feature_name: load_balancer_show_list
-  :startup: true
 - :name: network_topology
   :description: Networks / Topology
   :url: /network_topology
@@ -309,10 +354,15 @@
   :url: /cloud_volume_snapshot/show_list
   :rbac_feature_name: cloud_volume_snapshot_show_list
   :startup: true
-- :name: volume_backups
+- :name: cloud_volume_backups
   :description: Storage / Block Storage / Volume Backups
   :url: /cloud_volume_backup/show_list
   :rbac_feature_name: cloud_volume_backup_show_list
+  :startup: true
+- :name: cloud_volume_types
+  :description: Storage / Block Storage / Volume Types
+  :url: /cloud_volume_type/show_list
+  :rbac_feature_name: cloud_volume_type_show_list
   :startup: true
 - :name: ems_object_storage
   :description: Storage / Object Storage / Managers
@@ -384,15 +434,15 @@
   :url: /miq_ae_tools/resolve
   :rbac_feature_name: miq_ae_class_simulation
   :startup: true
+- :name: generic_object_definition
+  :description: Automation / Automate / Generic Objects
+  :url: /generic_object_definition/show_list
+  :rbac_feature_name: generic_object_definition_show_list
+  :startup: true
 - :name: miq_ae_customization_explorer
   :description: Automation / Automate / Customization
   :url: /miq_ae_customization/explorer
   :rbac_feature_name: miq_ae_customization_explorer
-  :startup: true
-- :name: generic_object_definition
-  :description: Automation / Automate / Generic Objects
-  :url: /generic_object_definition
-  :rbac_feature_name: generic_object_definition_show_list
   :startup: true
 - :name: miq_ae_class_import_export
   :description: Automation / Automate / Import / Export
@@ -409,21 +459,6 @@
   :url: /miq_request?typ=ae
   :rbac_feature_name: miq_request_show_list
   :startup: true
-- :name: utilization
-  :description: Optimize / Utilization
-  :url: /utilization
-  :rbac_feature_name: utilization
-  :startup: true
-- :name: planning
-  :description: Optimize / Planning
-  :url: /planning
-  :rbac_feature_name: planning
-  :startup: true
-- :name: bottlenecks
-  :description: Optimize / Bottlenecks
-  :url: /bottlenecks
-  :rbac_feature_name: bottlenecks
-  :startup: true
 - :name: monitor_alerts_overview
   :description: Monitor / Alerts / Overview
   :url: /alerts_overview
@@ -433,11 +468,6 @@
   :description: Monitor / Alerts / All Alerts
   :url: /alerts_list
   :rbac_feature_name: monitor_alerts_list
-  :startup: true
-- :name: monitor_alerts_most_recent
-  :description: Monitor / Alerts / Most Recent Alerts
-  :url: /alerts_most_recent
-  :rbac_feature_name: monitor_alerts_most_recent
   :startup: true
 - :name: miq_proxy_tasks
   :description: Settings / Tasks

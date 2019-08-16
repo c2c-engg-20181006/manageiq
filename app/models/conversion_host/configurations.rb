@@ -35,6 +35,7 @@ module ConversionHost::Configurations
       #
       MiqTask.find(task_id).tap do |task|
         params = params&.except(:task_id, :miq_task_id)
+        params = params&.update(:auth_user => auth_user) if auth_user
         hash = {:request_params => params&.reject { |key, _value| key.to_s.end_with?('private_key') }}
         task.context_data = hash
         task.save
@@ -55,7 +56,7 @@ module ConversionHost::Configurations
 
     def enable(params, auth_user = nil)
       params = params.symbolize_keys
-      _log.info("Enabling a conversion_host with parameters: #{params}")
+      _log.debug("Enabling a conversion_host with parameters: #{params}")
 
       params.delete(:task_id) # In case this is being called through *_queue which will stick in a :task_id
       miq_task_id = params.delete(:miq_task_id) # The miq_queue.activate_miq_task will stick in a :miq_task_id
@@ -68,6 +69,8 @@ module ConversionHost::Configurations
 
       ssh_key = params.delete(:conversion_host_ssh_private_key)
 
+      openstack_tls_ca_certs = params.delete(:openstack_tls_ca_certs)
+
       new(params).tap do |conversion_host|
         if ssh_key
           conversion_host.authentications << AuthPrivateKey.create!(
@@ -78,7 +81,7 @@ module ConversionHost::Configurations
           )
         end
 
-        conversion_host.enable_conversion_host_role(vmware_vddk_package_url, vmware_ssh_private_key)
+        conversion_host.enable_conversion_host_role(vmware_vddk_package_url, vmware_ssh_private_key, openstack_tls_ca_certs, miq_task_id)
         conversion_host.save!
 
         if miq_task_id
@@ -100,9 +103,9 @@ module ConversionHost::Configurations
     self.class.queue_configuration('disable', id, resource, {}, auth_user)
   end
 
-  def disable
+  def disable(_params = nil, _auth_user = nil)
     resource_info = "type=#{resource.class.name} id=#{resource.id}"
-    _log.info("Disabling a conversion_host #{resource_info}")
+    _log.debug("Disabling a conversion_host #{resource_info}")
 
     disable_conversion_host_role
     destroy!

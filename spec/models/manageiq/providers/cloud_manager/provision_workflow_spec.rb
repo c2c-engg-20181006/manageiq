@@ -1,9 +1,9 @@
-describe ManageIQ::Providers::CloudManager::ProvisionWorkflow do
+RSpec.describe ManageIQ::Providers::CloudManager::ProvisionWorkflow do
   include Spec::Support::WorkflowHelper
 
   let(:admin) { FactoryBot.create(:user_with_group) }
   let(:ems) { FactoryBot.create(:ems_cloud) }
-  let(:network_manager) { FactoryBot.create(:ems_network, :parent_ems_id => ems.id) }
+  let(:network_manager) { ems.network_manager }
   let(:template) { FactoryBot.create(:miq_template, :name => "template", :ext_management_system => ems) }
 
   let(:cloud_init_template) { FactoryBot.create(:customization_template_cloud_init) }
@@ -31,7 +31,6 @@ describe ManageIQ::Providers::CloudManager::ProvisionWorkflow do
 
     it "should retrieve cloud-init templates when cloning" do
       options = {'key' => 'value' }
-      allow(workflow).to receive(:supports_native_clone?).and_return(true)
 
       result = workflow.allowed_customization_templates(options)
       customization_template = workflow.instance_variable_get(:@values)[:customization_template_script]
@@ -46,7 +45,6 @@ describe ManageIQ::Providers::CloudManager::ProvisionWorkflow do
 
     it "should retrieve sysprep templates when cloning" do
       options = {'key' => 'value' }
-      allow(sysprep_workflow).to receive(:supports_native_clone?).and_return(true)
       allow(sysprep_workflow).to receive(:supports_sysprep?).and_return(true)
       allow(sysprep_workflow).to receive(:load_ar_obj).and_return(template)
       allow(template).to receive(:platform).and_return('windows')
@@ -85,8 +83,7 @@ describe ManageIQ::Providers::CloudManager::ProvisionWorkflow do
     end
 
     it "#allowed_guest_access_key_pairs" do
-      kp = AuthPrivateKey.create(:name => "auth_1")
-      ems.key_pairs << kp
+      kp = ems.key_pairs.create(:name => "auth_1")
       expect(workflow.allowed_guest_access_key_pairs).to eq(kp.id => kp.name)
     end
   end
@@ -192,9 +189,7 @@ describe ManageIQ::Providers::CloudManager::ProvisionWorkflow do
 
     context "#allowed_cloud_networks" do
       it "without a zone", :skip_before do
-        network_manager
-
-        expect(workflow.allowed_cloud_networks.length).to be_zero
+        expect(workflow.allowed_cloud_networks.length).to eq(1)
       end
 
       it "with a zone" do

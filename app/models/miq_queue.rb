@@ -153,6 +153,25 @@ class MiqQueue < ApplicationRecord
     msg
   end
 
+  # Execute a job on all servers.
+  #
+  # Raises an ArgumentError if zone or role keys are specified, and those keys
+  # will be nil'd out so `MiqQueue.get` "ignores" those fields.
+  #
+  def self.broadcast(options)
+    # Currently not filterable by these keys (:zone, :role)
+    #
+    # If this feature is ever needed, ensure you are not just passing the
+    # values from :zone and :role, but ALSO filtering the server list down by
+    # those same values to ensure orphan jobs are not being created.
+    raise ArgumentError, "invalid key :zone" if options.key?(:zone)
+    raise ArgumentError, "invalid key :role" if options.key?(:role)
+
+    MiqServer.active_miq_servers.select(:id, :guid).each do |server|
+      put(options.merge(:server_guid => server.guid, :zone => nil, :role => nil))
+    end
+  end
+
   # Trigger a background job
   #
   # target_worker:
@@ -565,11 +584,17 @@ class MiqQueue < ApplicationRecord
 
   # default values for get operations
   def self.default_get_options(options)
-    options.reverse_merge(
+    result = options.reverse_merge(
       :queue_name => DEFAULT_QUEUE,
       :state      => STATE_READY,
       :zone       => Zone.determine_queue_zone(options)
     )
+
+    if result[:class_name].kind_of?(Class)
+      ActiveSupport::Deprecation.warn("Rails 5.1 dropped support for Class query values, use a String for class_name.", caller[1..-1])
+      result[:class_name] = result[:class_name].name
+    end
+    result
   end
 
   private_class_method :default_get_options

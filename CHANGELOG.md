@@ -5,23 +5,222 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 
-## Unreleased as of Sprint 108 ending 2019-04-01
-
-### Added
-- Add zone to service provisioning. [(#18601)](https://github.com/ManageIQ/manageiq/pull/18601)
-- updating infra conversion job polling timers [(#18597)](https://github.com/ManageIQ/manageiq/pull/18597)
-- Add report interval date and report generation to Chargeback reports [(#18569)](https://github.com/ManageIQ/manageiq/pull/18569)
-- [V2V] Set context data for the task associated with conversion host creation [(#18541)](https://github.com/ManageIQ/manageiq/pull/18541)
-- Speed up Service access  [(#18487)](https://github.com/ManageIQ/manageiq/pull/18487)
-- [V2V] Refactor ConversionHost to use AuthenticationMixin [(#18309)](https://github.com/ManageIQ/manageiq/pull/18309)
+## Hammer-10
 
 ### Fixed
-- Conversion host base class [(#18604)](https://github.com/ManageIQ/manageiq/pull/18604)
+- Don't create retirement tasks for things that are already retired [(#18895)](https://github.com/ManageIQ/manageiq/pull/18895)
+- Allow modification of "Create new Picture" product feature on a role. [(#18982)](https://github.com/ManageIQ/manageiq/pull/18982)
+- set vm name on reconnect [(#19031)](https://github.com/ManageIQ/manageiq/pull/19031)
+
+## Ivanchuk-Beta2
+
+### Added
+- [EmbeddedAnsible] Better handle ConfigurationScriptSource status/last_updated_on/last_update_error [(#19061)](https://github.com/ManageIQ/manageiq/pull/19061)
+- Pull roles from ansible galaxy before running a playbook [(#19079)](https://github.com/ManageIQ/manageiq/pull/19079)
+- Update to PG10 package name/path for Docker image [(#19096)](https://github.com/ManageIQ/manageiq/pull/19096)
+- Don't create the embedded ansible default project [(#19056)](https://github.com/ManageIQ/manageiq/pull/19056)
+
+### Fixed
+- Queue ServiceAnsiblePlaybook#execute for the embedded_ansible role [(#19055)](https://github.com/ManageIQ/manageiq/pull/19055)
+- Fixed seeding failure if yaml file containing report was renamed [(#19080)](https://github.com/ManageIQ/manageiq/pull/19080)
+- Refactor Overview Utilization menu text [(#19062)](https://github.com/ManageIQ/manageiq/pull/19062)
+- Don't load BinaryBlobParts when determining if MiqReportResult is blank [(#19082)](https://github.com/ManageIQ/manageiq/pull/19082)
+
+## Ivanchuk Beta1 - Released 2019-07-29
+
+### Added
+- Use escalate privilege setting in ansible services and automate methods [(#19012)](https://github.com/ManageIQ/manageiq/pull/19012)
+- [ansible_runner] Add NetworkCredential for Ansible::Runner lib [(#19007)](https://github.com/ManageIQ/manageiq/pull/19007)
+- [ansible_runner] Add VaultCredential [(#19002)](https://github.com/ManageIQ/manageiq/pull/19002)
+- Adds cloud credentials to AnsibleRunner (for EmbeddedAnsible) [(#18991)](https://github.com/ManageIQ/manageiq/pull/18991)
+- Adding tenant stuff to service template copy [(#18990)](https://github.com/ManageIQ/manageiq/pull/18990)
+- Make embedded ansible verbosity and execution_ttl work [(#18989)](https://github.com/ManageIQ/manageiq/pull/18989)
+- Pass credentials from ansible playbook automate methods to runner [(#18983)](https://github.com/ManageIQ/manageiq/pull/18983)
+- Include resource_actions and picture in service_template copy [(#18973)](https://github.com/ManageIQ/manageiq/pull/18973)
+- Pass credentials to ansible runner from services [(#18969)](https://github.com/ManageIQ/manageiq/pull/18969)
+- Add credential handling to Ansible::Runner [(#18968)](https://github.com/ManageIQ/manageiq/pull/18968)
+- Log only unique servers id used to process miq_request [(#18962)](https://github.com/ManageIQ/manageiq/pull/18962)
+- Unify the HTML5 canvas-based remote consoles under a single endpoint [(#18927)](https://github.com/ManageIQ/manageiq/pull/18927)
+- [V2V] Use authentication_check instead of verify credentials [(#18880)](https://github.com/ManageIQ/manageiq/pull/18880)
+- Introduce Request and Task for firmware update [(#18801)](https://github.com/ManageIQ/manageiq/pull/18801)
+- Add missing quota tags [(#18656)](https://github.com/ManageIQ/manageiq/pull/18656)
+- Add scope to list providers from ancestor tenants [(#18735)](https://github.com/ManageIQ/manageiq/pull/18735)
+- Add scope to list service templates from ancestor tenants [(#18733)](https://github.com/ManageIQ/manageiq/pull/18733)
+- Seed plugin ansible content [(#18844)](https://github.com/ManageIQ/manageiq/pull/18844)
+- Update a service's lifecycle_state. [(#18803)](https://github.com/ManageIQ/manageiq/pull/18803)
+- Use `ansible-runner` in EmbeddedAnsible [(#18687)](https://github.com/ManageIQ/manageiq/pull/18687)
+- Classification.yml don't use parent_id=0 [(#18418)](https://github.com/ManageIQ/manageiq/pull/18418)
+- Classification parent [(#18301)](https://github.com/ManageIQ/manageiq/pull/18301)
+- Use rails deprecation behavior but log in production [(#18847)](https://github.com/ManageIQ/manageiq/pull/18847)
+- Allow use of systemd for worker management [(#18648)](https://github.com/ManageIQ/manageiq/pull/18648)
+- Make MiqProductFeature seeding pluggable [(#18806)](https://github.com/ManageIQ/manageiq/pull/18806)
+- Add currency to service template. [(#18754)](https://github.com/ManageIQ/manageiq/pull/18754)
+- Use new replication gem [(#18686)](https://github.com/ManageIQ/manageiq/pull/18686)
+- Add logging to standard output for report generator tool [(#18640)](https://github.com/ManageIQ/manageiq/pull/18640)
+- Add option to schedule automation requests via workflow [(#18741)](https://github.com/ManageIQ/manageiq/pull/18741)
+- Add support for exporting and importing generic object definitions [(#18688)](https://github.com/ManageIQ/manageiq/pull/18688)
+- Add a tool to assist in reconnecting vms [(#18615)](https://github.com/ManageIQ/manageiq/pull/18615)
+- Add zone to service provisioning. [(#18601)](https://github.com/ManageIQ/manageiq/pull/18601)
+- Add report interval date and report generation to Chargeback reports [(#18569)](https://github.com/ManageIQ/manageiq/pull/18569)
+- Speed up Service access  [(#18487)](https://github.com/ManageIQ/manageiq/pull/18487)
+- [V2V] Refactor ConversionHost to use AuthenticationMixin [(#18309)](https://github.com/ManageIQ/manageiq/pull/18309)
+- Add Volume Resizing capability to SupportsFeatureMixin [(#18560)](https://github.com/ManageIQ/manageiq/pull/18560)
+- Added ability to destroy all users dashboards [(#18555)](https://github.com/ManageIQ/manageiq/pull/18555)
+- Added MiqWidgetSet.copy_dashboard [(#18550)](https://github.com/ManageIQ/manageiq/pull/18550)
+- Loosen the Postgres version initializer check [(#18547)](https://github.com/ManageIQ/manageiq/pull/18547)
+- Add volume multiattachment capability [(#18371)](https://github.com/ManageIQ/manageiq/pull/18371)
+- Add custom_button and custom_button_set copy to service_template copy [(#18494)](https://github.com/ManageIQ/manageiq/pull/18494)
+- Use currencies from money gem in Chargeback [(#18486)](https://github.com/ManageIQ/manageiq/pull/18486)
+- Add an inventory_collection for the EMS [(#18484)](https://github.com/ManageIQ/manageiq/pull/18484)
+- Add method to copy service templates [(#18464)](https://github.com/ManageIQ/manageiq/pull/18464)
+- Explicitly specify the primary key for the metrics tables [(#18384)](https://github.com/ManageIQ/manageiq/pull/18384)
+- Allow user to select Network Port for provisioning [(#18303)](https://github.com/ManageIQ/manageiq/pull/18303)
+- Targeted refresh for Embedded ansible provider [(#18429)](https://github.com/ManageIQ/manageiq/pull/18429)
+- Update host switch association [(#18427)](https://github.com/ManageIQ/manageiq/pull/18427)
+- Add uri_attributes as virtual_attribute to CustomButton [(#18379)](https://github.com/ManageIQ/manageiq/pull/18379)
+- Override add resource to no-op in service orchestration subclass [(#18358)](https://github.com/ManageIQ/manageiq/pull/18358)
+- Add a 'name' parameter to backup restore and make volumeid optional [(#17952)](https://github.com/ManageIQ/manageiq/pull/17952)
+- Mark rbac_tenant_manage_quotas as  MY TENANT FEATURE [(#18322)](https://github.com/ManageIQ/manageiq/pull/18322)
+- Detach actioncable from the WebsocketServer and run it with the UI [(#18296)](https://github.com/ManageIQ/manageiq/pull/18296)
+- Add support for exporting and importing reports [(#18284)](https://github.com/ManageIQ/manageiq/pull/18284)
+
+### Changed
+- Rename WebSocketWorker to RemoteConsoleWorker [(#18337)](https://github.com/ManageIQ/manageiq/pull/18337)
+
+### Fixed
+- Fix Embedded Ansible Respository refresh [(#19024)](https://github.com/ManageIQ/manageiq/pull/19024)
+- When copying ServiceTemplate copy only direct_custom_buttons [(#18960)](https://github.com/ManageIQ/manageiq/pull/18960)
+- Validate bools with inclusion [(#18914)](https://github.com/ManageIQ/manageiq/pull/18914)
+- Adding data integrity constrains for some associations to User model [(#18472)](https://github.com/ManageIQ/manageiq/pull/18472)
+- Updated MiqShortcuts for MySettings Start At Login dropdown [(#18416)](https://github.com/ManageIQ/manageiq/pull/18416)
+- honor storage_file_collection_time_utc setting [(#18585)](https://github.com/ManageIQ/manageiq/pull/18585)
+- Rename Configuration feature to Main Configuration [(#18707)](https://github.com/ManageIQ/manageiq/pull/18707)
+- Fix for incorrect key sent back for dynamic non sorted items [(#18650)](https://github.com/ManageIQ/manageiq/pull/18650)
+- Check that reconfigure is supported before we try it [(#18636)](https://github.com/ManageIQ/manageiq/pull/18636)
+- Fix Key Pairs from refresh being returned with provider AuthPrivateKeys [(#18633)](https://github.com/ManageIQ/manageiq/pull/18633)
+- Check ems_ref before uid_ems when saving VMs [(#18616)](https://github.com/ManageIQ/manageiq/pull/18616)
 - Don't start another refresh worker while another is stopping [(#18583)](https://github.com/ManageIQ/manageiq/pull/18583)
-- ProcessTasksMixinin.invoke_tasks_remote should not send AuditEvent(:success) if invocation failed [(#18565)](https://github.com/ManageIQ/manageiq/pull/18565)
-- Rbac virtual attributes [(#18543)](https://github.com/ManageIQ/manageiq/pull/18543)
 - Add region checking for all user schedules [(#18512)](https://github.com/ManageIQ/manageiq/pull/18512)
 - Fix saving network manager in belongsto filter [(#18504)](https://github.com/ManageIQ/manageiq/pull/18504)
+- use like (vs ilike) for service query [(#18549)](https://github.com/ManageIQ/manageiq/pull/18549)
+- Fix: started_on and state attributes for task linked to chargeback for service [(#18542)](https://github.com/ManageIQ/manageiq/pull/18542)
+- dynamic DatePicker value isn't being set correctly [(#18523)](https://github.com/ManageIQ/manageiq/pull/18523)
+- Delegate vms_and_templates and miq_templates to parent_manager [(#18488)](https://github.com/ManageIQ/manageiq/pull/18488)
+- Fix graph refresh overwriting smartstate OS info [(#18477)](https://github.com/ManageIQ/manageiq/pull/18477)
+- CustomButtonSet - make sure children follow button_order [(#18368)](https://github.com/ManageIQ/manageiq/pull/18368)
+- Only run preprocess_targets_manager_refresh when doing graph refresh and add specs [(#18513)](https://github.com/ManageIQ/manageiq/pull/18513)
+- Fixed: started_on column is empty in task which power-on VM [(#18498)](https://github.com/ManageIQ/manageiq/pull/18498)
+- Dup should just dup and not save... [(#18490)](https://github.com/ManageIQ/manageiq/pull/18490)
+- Redo presence check after possible reset of user to nil [(#18462)](https://github.com/ManageIQ/manageiq/pull/18462)
+- Don't rely on false return from callbacks to halt execution [(#18456)](https://github.com/ManageIQ/manageiq/pull/18456)
+- Fix: When user changing display timezone than some widgets show no data [(#18448)](https://github.com/ManageIQ/manageiq/pull/18448)
+- Fixed: Timezone set-up in MySettings was not honored when displaying date fields in the report [(#18438)](https://github.com/ManageIQ/manageiq/pull/18438)
+- Fix save_inventory error if lan can't be found [(#18433)](https://github.com/ManageIQ/manageiq/pull/18433)
+- Give dialogs/models/archive logs unique names [(#18365)](https://github.com/ManageIQ/manageiq/pull/18365)
+- Fix names of chargeback rate columns [(#18346)](https://github.com/ManageIQ/manageiq/pull/18346)
+- Re-raise the LoadError if it is not for the file we are trying to load [(#18343)](https://github.com/ManageIQ/manageiq/pull/18343)
+- Do not report an error in websocket_log when closing a VNC connection [(#18342)](https://github.com/ManageIQ/manageiq/pull/18342)
+- Clarify the 'towhat' inclusion validation message on policy creation. [(#18338)](https://github.com/ManageIQ/manageiq/pull/18338)
+- Change Stacked Area chart for Area chart for the Virtual Machine CPU States [(#18333)](https://github.com/ManageIQ/manageiq/pull/18333)
+- Add display name for Azure Floating IP [(#18332)](https://github.com/ManageIQ/manageiq/pull/18332)
+- Fixing subservice task creation for service bundles [(#18283)](https://github.com/ManageIQ/manageiq/pull/18283)
+- RHV requires disconnect_storage before ems [(#18330)](https://github.com/ManageIQ/manageiq/pull/18330)
+- Don't reset retirement_requester after end of retirement [(#18325)](https://github.com/ManageIQ/manageiq/pull/18325)
+- Send 'which prince' failures to /dev/null [(#18314)](https://github.com/ManageIQ/manageiq/pull/18314)
+- Ensure a users own tasks are the only ones returned when the users role has View/My Tasks [(#18311)](https://github.com/ManageIQ/manageiq/pull/18311)
+- fix endpoint url uniqueness validation and disable it for cloud providers [(#18298)](https://github.com/ManageIQ/manageiq/pull/18298)
+- set read_only value to true [(#18295)](https://github.com/ManageIQ/manageiq/pull/18295)
+- Don't seed tenant product features for tenant from remote region [(#18286)](https://github.com/ManageIQ/manageiq/pull/18286)
+- Fix RBAC call for templates and vms [(#18128)](https://github.com/ManageIQ/manageiq/pull/18128)
+
+### Removed
+- Remove deprecated Optimize Planning - shortcuts and user roles [(#18624)](https://github.com/ManageIQ/manageiq/pull/18624)
+
+## Hammer-9 - Released 2019-07-23
+
+### Added
+- [V2V] Enhance throttler logging [(#18929)](https://github.com/ManageIQ/manageiq/pull/18929) 
+
+### Fixed
+- Correctly recurse over nested field associations [(#18890)](https://github.com/ManageIQ/manageiq/pull/18890)
+- Add a tool to purge archived storages [(#18902)](https://github.com/ManageIQ/manageiq/pull/18902)
+- [V2V] Don't use the ssh agent when verifying credentials [(#18920)](https://github.com/ManageIQ/manageiq/pull/18920)
+- Create retire subtasks for multiple services [(#18908)](https://github.com/ManageIQ/manageiq/pull/18908)
+
+## Hammer-8 - Released 2019-07-02
+
+### Added
+- Add migration analytics reports [(#18749)](https://github.com/ManageIQ/manageiq/pull/18749)
+- [V2V] Filter certain options in the ConversionHost#run_conversion method [(#18852)](https://github.com/ManageIQ/manageiq/pull/18852)
+
+### Fixed
+- [V2V] Restore auth_user in conversion host context data [(#18819)](https://github.com/ManageIQ/manageiq/pull/18819)
+- [EvmDatabaseOps] Fix .validate_free_space target [(#18745)](https://github.com/ManageIQ/manageiq/pull/18745)
+- [Fix] PID retrieval to kill virt-v2v [(#18853)](https://github.com/ManageIQ/manageiq/pull/188530)
+- Group AND expressions properly to account for nesting [(#18709)](https://github.com/ManageIQ/manageiq/pull/18709)
+- assign value to a variable and return at the end. [(#18867)](https://github.com/ManageIQ/manageiq/pull/18867)
+- [V2V] Modify active_tasks so that it always reloads [(#18860)](https://github.com/ManageIQ/manageiq/pull/18860)
+
+## Hammer-7 - Released 2019-06-10
+
+### Added
+- [V2V] Have ConversionHost explicitly search authentications for auth type [(#18748)](https://github.com/ManageIQ/manageiq/pull/18748)
+
+### Fixed
+- Doesn't count with selection of belongsto filter if any object doesn't exist in the filter sentence [(#18651)](https://github.com/ManageIQ/manageiq/pull/18651)
+- [V2V] Conversion Host - Use JSON format for extra vars [(#18772)](https://github.com/ManageIQ/manageiq/pull/18772)
+- [V2V] Conversion Host - Handle CA bundle from UI [(#18762)](https://github.com/ManageIQ/manageiq/pull/18762)
+- [V2V] Add default credentials to ansible_playbook method [(#18724)](https://github.com/ManageIQ/manageiq/pull/18724)
+- Add src_vm_or_dest_host_refresh_target. [(#18715)](https://github.com/ManageIQ/manageiq/pull/18715)
+- Allow ssh auth for RHV [(#18805)](https://github.com/ManageIQ/manageiq/pull/18805)
+
+## Hammer-6 - Released 2019-05-22
+
+### Added
+- Add conversion_host option to the SupportsFeatureMixin module [(#18232)](https://github.com/ManageIQ/manageiq/pull/18232)
+- Modify the enable ConversionHost::Configurations#enable method to handle arguments more robustly [(#18336)](https://github.com/ManageIQ/manageiq/pull/18336)
+- Tag associated resource for conversion hosts [(#18505)](https://github.com/ManageIQ/manageiq/pull/18505)
+- Add the resource name to the task action for conversion hosts [(#18525)](https://github.com/ManageIQ/manageiq/pull/18525)
+- Default to resource name for conversion hosts [(#18516)](https://github.com/ManageIQ/manageiq/pull/18516)
+- [V2V] Generate extra vars for conversion host playbooks [(#18537)](https://github.com/ManageIQ/manageiq/pull/18537)
+- [V2V] Add CPU and network throttling in model [(#18576)](https://github.com/ManageIQ/manageiq/pull/18576)
+- [V2V] Set context data for the task associated with conversion host creation [(#18541)](https://github.com/ManageIQ/manageiq/pull/18541)
+
+### Fixed
+- [V2V] Fix placeholder name for conversion hosts [(#18535)](https://github.com/ManageIQ/manageiq/pull/18535)
+- Conversion host base class [(#18604)](https://github.com/ManageIQ/manageiq/pull/18604)
+- fix_auth now handles recursive settings [(#18631)](https://github.com/ManageIQ/manageiq/pull/18631)
+- Retirement - remove auto_approve flag on request creation. [(#18638)](https://github.com/ManageIQ/manageiq/pull/18638)
+- Fix Container belongsto filter in Rbac::Filterer [(#18654)](https://github.com/ManageIQ/manageiq/pull/18654)
+- Fix: convert string representation of sizes to numbers when generating SQL for expression [(#18649)](https://github.com/ManageIQ/manageiq/pull/18649)
+- Use admin user in get_user for service show if user's deleted [(#18663)](https://github.com/ManageIQ/manageiq/pull/18663)
+- Fix address validation for ConversionHost model [(#18381)](https://github.com/ManageIQ/manageiq/pull/18381)
+- [V2V] Run the playbook on the appliance with the conversion host in inventory [(#18613)](https://github.com/ManageIQ/manageiq/pull/18613)
+- [V2V] Fix allowing address to be blank for the ConversionHost model, and update spec. [(#18690)](https://github.com/ManageIQ/manageiq/pull/18690)
+- [V2V] Provide placeholder params for the ConversionHost#disable method [(#18691)](https://github.com/ManageIQ/manageiq/pull/18691)
+- Service template picture [(#18689)](https://github.com/ManageIQ/manageiq/pull/18689)
+- Fix ServiceTemplate#picture= with models [(#18705)](https://github.com/ManageIQ/manageiq/pull/18705)
+- Add source to retire request to parse in parse_prov_category in engine [(#18738)](https://github.com/ManageIQ/manageiq/pull/18738)
+- Allow textarea boxes to dynamically set validator type and rule [(#18743)](https://github.com/ManageIQ/manageiq/pull/18743)
+
+## Hammer-5 - Released 2019-04-23
+
+### Added
+- Deprecate invalid custom attribute names [(#18538)](https://github.com/ManageIQ/manageiq/pull/18538)
+- Add ConversionHost validations [(#18277)](https://github.com/ManageIQ/manageiq/pull/18277)
+- Alter ansible_playbook method so that some arguments are optional [(#18323)](https://github.com/ManageIQ/manageiq/pull/18323)
+- Tenancy for central admin [(#18263)](https://github.com/ManageIQ/manageiq/pull/18263)
+- [V2V] Expose virt-v2v-wrapper error message in options hash [(#18564)](https://github.com/ManageIQ/manageiq/pull/18564)
+- updating infra conversion job polling timers [(#18597)](https://github.com/ManageIQ/manageiq/pull/18597)
+- [V2V] Throttler - Replace class constant with global setting [(#18539)](https://github.com/ManageIQ/manageiq/pull/18539)
+
+### Fixed
+- Rbac virtual attributes [(#18543)](https://github.com/ManageIQ/manageiq/pull/18543)
+- Preserve group and user when importing reports [(#18270)](https://github.com/ManageIQ/manageiq/pull/18270)
+- default merged_uri should return the parameter not the attribute [(#18497)](https://github.com/ManageIQ/manageiq/pull/18497)
+- ProcessTasksMixinin.invoke_tasks_remote should not send AuditEvent(:success) if invocation failed [(#18565)](https://github.com/ManageIQ/manageiq/pull/18565)
+- Don't print the release codename in production mode [(#18444)](https://github.com/ManageIQ/manageiq/pull/18444)
+- fix: swap makes vms out of disk space report false positive [(#18623)](https://github.com/ManageIQ/manageiq/pull/18623)
 
 ## Hammer-4 - Released 2019-03-29
 
@@ -39,48 +238,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - update infra_migration_job when polling to prevent timing out [(#18557)](https://github.com/ManageIQ/manageiq/pull/18557)
 - [V2V] Fix ConversionHost active_tasks method to use state == 'migrate' [(#18570)](https://github.com/ManageIQ/manageiq/pull/18570)
 
-## Unreleased as of Sprint 107 ending 2019-03-18
-
-### Added
-- [V2V] Expose virt-v2v-wrapper error message in options hash [(#18564)](https://github.com/ManageIQ/manageiq/pull/18564)
-- Add Volume Resizing capability to SupportsFeatureMixin [(#18560)](https://github.com/ManageIQ/manageiq/pull/18560)
-- Added ability to destroy all users dashboards [(#18555)](https://github.com/ManageIQ/manageiq/pull/18555)
-- Added MiqWidgetSet.copy_dashboard [(#18550)](https://github.com/ManageIQ/manageiq/pull/18550)
-- Loosen the Postgres version initializer check [(#18547)](https://github.com/ManageIQ/manageiq/pull/18547)
-- [V2V] Throttler - Replace class constant with global setting [(#18539)](https://github.com/ManageIQ/manageiq/pull/18539)
-- [V2V] Generate extra vars for conversion host playbooks [(#18537)](https://github.com/ManageIQ/manageiq/pull/18537)
-- Add the resource name to the task action for conversion hosts [(#18525)](https://github.com/ManageIQ/manageiq/pull/18525)
-- Tag associated resource for conversion hosts [(#18505)](https://github.com/ManageIQ/manageiq/pull/18505)
-- Add volume multiattachment capability [(#18371)](https://github.com/ManageIQ/manageiq/pull/18371)
-
-### Fixed
-- use like (vs ilike) for service query [(#18549)](https://github.com/ManageIQ/manageiq/pull/18549)
-- Fix: started_on and state attributes for task linked to chargeback for service [(#18542)](https://github.com/ManageIQ/manageiq/pull/18542)
-- [V2V] Fix placeholder name for conversion hosts [(#18535)](https://github.com/ManageIQ/manageiq/pull/18535)
-- dynamic DatePicker value isn't being set correctly [(#18523)](https://github.com/ManageIQ/manageiq/pull/18523)
-- Delegate vms_and_templates and miq_templates to parent_manager [(#18488)](https://github.com/ManageIQ/manageiq/pull/18488)
-- Fix graph refresh overwriting smartstate OS info [(#18477)](https://github.com/ManageIQ/manageiq/pull/18477)
-- Don't print the release codename in production mode [(#18444)](https://github.com/ManageIQ/manageiq/pull/18444)
-- CustomButtonSet - make sure children follow button_order [(#18368)](https://github.com/ManageIQ/manageiq/pull/18368)
-
-## Unreleased as of Sprint 106 ending 2019-03-04
-
-### Added
-- Add custom_button and custom_button_set copy to service_template copy [(#18494)](https://github.com/ManageIQ/manageiq/pull/18494)
-- Use currencies from money gem in Chargeback [(#18486)](https://github.com/ManageIQ/manageiq/pull/18486)
-- Add an inventory_collection for the EMS [(#18484)](https://github.com/ManageIQ/manageiq/pull/18484)
-- Add method to copy service templates [(#18464)](https://github.com/ManageIQ/manageiq/pull/18464)
-- Explicitly specify the primary key for the metrics tables [(#18384)](https://github.com/ManageIQ/manageiq/pull/18384)
-- Allow user to select Network Port for provisioning [(#18303)](https://github.com/ManageIQ/manageiq/pull/18303)
-
-### Fixed
-- Only run preprocess_targets_manager_refresh when doing graph refresh and add specs [(#18513)](https://github.com/ManageIQ/manageiq/pull/18513)
-- Fixed: started_on column is empty in task which power-on VM [(#18498)](https://github.com/ManageIQ/manageiq/pull/18498)
-- Dup should just dup and not save... [(#18490)](https://github.com/ManageIQ/manageiq/pull/18490)
-- Redo presence check after possible reset of user to nil [(#18462)](https://github.com/ManageIQ/manageiq/pull/18462)
-- Don't rely on false return from callbacks to halt execution [(#18456)](https://github.com/ManageIQ/manageiq/pull/18456)
-- Fix: When user changing display timezone than some widgets show no data [(#18448)](https://github.com/ManageIQ/manageiq/pull/18448)
-
 ## Hammer-3 - Released 2019-03-06
 
 ### Added
@@ -97,61 +254,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - Don't retire load balancers [(#18443)](https://github.com/ManageIQ/manageiq/pull/18443)
 - Add check for existence of user for system_context [(#18437)](https://github.com/ManageIQ/manageiq/pull/18437)
 
-## Unreleased as of Sprint 105 ending 2019-02-18
-
-### Added
-- Targeted refresh for Embedded ansible provider [(#18429)](https://github.com/ManageIQ/manageiq/pull/18429)
-- Update host switch association [(#18427)](https://github.com/ManageIQ/manageiq/pull/18427)
-- Add uri_attributes as virtual_attribute to CustomButton [(#18379)](https://github.com/ManageIQ/manageiq/pull/18379)
-
-### Fixed
-- Fixed: Timezone set-up in MySettings was not honored when displaying date fields in the report [(#18438)](https://github.com/ManageIQ/manageiq/pull/18438)
-- Fix save_inventory error if lan can't be found [(#18433)](https://github.com/ManageIQ/manageiq/pull/18433)
-
 ## Hammer-2 - Released 2019-02-07
 
 ### Fixed
 - Use the new schema_migrations_ran table to track remote schema migrations [(#18393)](https://github.com/ManageIQ/manageiq/pull/18393)
-
-## Unreleased as of Sprint 103 ending 2019-01-21
-
-### Added
-- Override add resource to no-op in service orchestration subclass [(#18358)](https://github.com/ManageIQ/manageiq/pull/18358)
-- Modify the enable ConversionHost::Configurations#enable method to handle arguments more robustly [(#18336)](https://github.com/ManageIQ/manageiq/pull/18336)
-- Alter ansible_playbook method so that some arguments are optional [(#18323)](https://github.com/ManageIQ/manageiq/pull/18323)
-- Add a 'name' parameter to backup restore and make volumeid optional [(#17952)](https://github.com/ManageIQ/manageiq/pull/17952)
-
-### Changed
-- Rename WebSocketWorker to RemoteConsoleWorker [(#18337)](https://github.com/ManageIQ/manageiq/pull/18337)
-
-### Fixed
-- Give dialogs/models/archive logs unique names [(#18365)](https://github.com/ManageIQ/manageiq/pull/18365)
-- Fix names of chargeback rate columns [(#18346)](https://github.com/ManageIQ/manageiq/pull/18346)
-- Re-raise the LoadError if it is not for the file we are trying to load [(#18343)](https://github.com/ManageIQ/manageiq/pull/18343)
-- Do not report an error in websocket_log when closing a VNC connection [(#18342)](https://github.com/ManageIQ/manageiq/pull/18342)
-- Clarify the 'towhat' inclusion validation message on policy creation. [(#18338)](https://github.com/ManageIQ/manageiq/pull/18338)
-- Change Stacked Area chart for Area chart for the Virtual Machine CPU States [(#18333)](https://github.com/ManageIQ/manageiq/pull/18333)
-- Add display name for Azure Floating IP [(#18332)](https://github.com/ManageIQ/manageiq/pull/18332)
-- Fixing subservice task creation for service bundles [(#18283)](https://github.com/ManageIQ/manageiq/pull/18283)
-- Preserve group and user when importing reports [(#18270)](https://github.com/ManageIQ/manageiq/pull/18270)
-
-## Unreleased as of Sprint 102 ending 2019-01-07
-
-### Added
-- Mark rbac_tenant_manage_quotas as  MY TENANT FEATURE [(#18322)](https://github.com/ManageIQ/manageiq/pull/18322)
-- Detach actioncable from the WebsocketServer and run it with the UI [(#18296)](https://github.com/ManageIQ/manageiq/pull/18296)
-- Add support for exporting and importing reports [(#18284)](https://github.com/ManageIQ/manageiq/pull/18284)
-- Tenancy for central admin [(#18263)](https://github.com/ManageIQ/manageiq/pull/18263)
-
-### Fixed
-- RHV requires disconnect_storage before ems [(#18330)](https://github.com/ManageIQ/manageiq/pull/18330)
-- Don't reset retirement_requester after end of retirement [(#18325)](https://github.com/ManageIQ/manageiq/pull/18325)
-- Send 'which prince' failures to /dev/null [(#18314)](https://github.com/ManageIQ/manageiq/pull/18314)
-- Ensure a users own tasks are the only ones returned when the users role has View/My Tasks [(#18311)](https://github.com/ManageIQ/manageiq/pull/18311)
-- fix endpoint url uniqueness validation and disable it for cloud providers [(#18298)](https://github.com/ManageIQ/manageiq/pull/18298)
-- set read_only value to true [(#18295)](https://github.com/ManageIQ/manageiq/pull/18295)
-- Don't seed tenant product features for tenant from remote region [(#18286)](https://github.com/ManageIQ/manageiq/pull/18286)
-- Fix RBAC call for templates and vms [(#18128)](https://github.com/ManageIQ/manageiq/pull/18128)
 
 ## Hammer-1 - Released 2019-01-15
 
@@ -641,17 +747,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - remove 'require_nested :ConfigurationWorkflow' from parent space [(#17782)](https://github.com/ManageIQ/manageiq/pull/17782)
 - Remove ui_lookup_for_title() [(#17691)](https://github.com/ManageIQ/manageiq/pull/17691)
 
-## Unreleased as of Sprint 101 ending 2018-12-17
-
-### Added
-- Add ConversionHost validations [(#18277)](https://github.com/ManageIQ/manageiq/pull/18277)
-
-### Fixed
-
 ## Unreleased as of Sprint 100 ending 2018-12-03
-
-### Added
-- Add conversion_host option to the SupportsFeatureMixin module [(#18232)](https://github.com/ManageIQ/manageiq/pull/18232)
 
 ### Fixed
 - Properly generate report yml include with virtual attributes [(#18205)](https://github.com/ManageIQ/manageiq/pull/18205)

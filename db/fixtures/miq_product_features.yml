@@ -256,6 +256,10 @@
         :description: Remove Catalog Items
         :feature_type: admin
         :identifier: catalogitem_delete
+      - :name: Set Ownership
+        :description: Set Ownership of Catalog Item
+        :feature_type: control
+        :identifier: catalogitem_ownership
       - :name: Edit Composite Catalog Item
         :description: Edit a Composite Catalog Item
         :feature_type: admin
@@ -407,7 +411,7 @@
         :feature_type: admin
         :identifier: service_delete
       - :name: Set Ownership
-        :description: Set Ownership of VMs
+        :description: Set Ownership of Services
         :feature_type: control
         :identifier: service_ownership
       - :name: Reconfigure Services
@@ -860,6 +864,10 @@
       :description: Edit Tags of Key Pairs
       :feature_type: control
       :identifier: auth_key_pair_cloud_tag
+    - :name: Set Ownership
+      :description: Set Ownership of Keys Pairs
+      :feature_type: control
+      :identifier: auth_key_pair_ownership
   - :name: Modify
     :description: Modify Key Pairs
     :feature_type: admin
@@ -1108,52 +1116,6 @@
       :feature_type: admin
       :identifier: ems_infra_change_password
 
-# V2V
-- :name: Migration Overview
-  :description: Migration Overview
-  :feature_type: node
-  :identifier: migration
-  :children:
-  - :name: Conversion Hosts
-    :description: Conversion Hosts
-    :feature_type: node
-    :identifier: conversion_host
-    :children:
-    - :name: View
-      :description: View Conversion Hosts
-      :feature_type: view
-      :identifier: conversion_host_view
-      :children:
-      - :name: List
-        :description: Display Lists of Conversion Hosts
-        :feature_type: view
-        :identifier: conversion_host_show_list
-      - :name: Show
-        :description: Display Individual Conversion Hosts
-        :feature_type: view
-        :identifier: conversion_host_show
-    - :name: Operate
-      :description: Perform Operations on Conversion Hosts
-      :feature_type: control
-      :identifier: conversion_host_control
-      :children:
-      - :name: Edit Tags
-        :description: Edit Tags of Conversion Hosts
-        :feature_type: control
-        :identifier: conversion_host_tag
-
-# V2V
-- :name: Infrastructure Mappings
-  :description: Infrastructure Mappings
-  :feature_type: node
-  :identifier: mappings
-
-# V2V
-- :name: Migration Settings
-  :description: Migration Settings
-  :feature_type: node
-  :identifier: migration_settings
-
 # Datacenters
 - :name: Datacenters
   :description: Datacenters
@@ -1288,9 +1250,6 @@
       :description: Check Compliance of Last Known Configuration for Hosts / Nodes
       :feature_type: control
       :identifier: host_check_compliance
-    - :name: Discover
-      :feature_type: control
-      :identifier: host_discover
     - :name: Manage Policies
       :description: Manage Policies for Hosts / Nodes
       :feature_type: control
@@ -1348,10 +1307,6 @@
     :feature_type: admin
     :identifier: host_admin
     :children:
-    - :name: Add
-      :description: Add a Host / Node
-      :feature_type: admin
-      :identifier: host_new
     - :name: Remove
       :description: Remove Hosts / Nodes
       :feature_type: admin
@@ -1753,6 +1708,12 @@
     :feature_type: node
     :identifier: miq_report_export
 
+# Optimization
+- :name: Optimization
+  :description: Everything under Optimization
+  :feature_type: node
+  :identifier: optimization
+
 # Consumption
 - :name: Consumption
   :description: Everything under Consumption
@@ -1851,17 +1812,6 @@
   :description: Everything under RSS
   :feature_type: node
   :identifier: rss
-
-# Pictures
-- :name: Pictures
-  :description: Everything under Pictures
-  :feature_type: admin
-  :identifier: pictures
-  :children:
-  - :name: Create new Picture
-    :description: Create a new picture
-    :feature_type: admin
-    :identifier: picture_new
 
 # Policy
 - :name: Explorer
@@ -2737,18 +2687,6 @@
   :feature_type: node
   :identifier: utilization
 
-# Planning
-- :name: Planning
-  :description: Display of Planning Data
-  :feature_type: node
-  :identifier: planning
-
-# Bottlenecks
-- :name: Bottlenecks
-  :description: Display of Bottlenecks data
-  :feature_type: node
-  :identifier: bottlenecks
-
 # My Settings
 - :name: My Settings
   :description: Everything under My Settings
@@ -2856,7 +2794,7 @@
       :identifier: miq_task_canceljob
 
 # Configuration
-- :name: Configuration
+- :name: Main Configuration
   :description: Everything under Configuration
   :feature_type: node
   :identifier: ops_explorer
@@ -2957,50 +2895,38 @@
           :feature_type: admin
           :hidden: true
           :identifier: schedule_disable
-    - :name: Zones
-      :description: Zones
-      :feature_type: node
+    - :name: Modify Zone
+      :description: Modify Zones
+      :feature_type: admin
+      :identifier: zone_admin
       :hidden: true
-      :identifier: zone
       :children:
-      - :name: Modify
-        :description: Modify Zones
+      - :name: Add
+        :description: Add a Zone
         :feature_type: admin
-        :identifier: zone_admin
         :hidden: true
-        :children:
-        - :name: Add
-          :description: Add a Zone
-          :feature_type: admin
-          :hidden: true
-          :identifier: zone_new
-        - :name: Edit
-          :description: Edit a Zone
-          :feature_type: admin
-          :hidden: true
-          :identifier: zone_edit
-        - :name: Delete
-          :description: Delete a Zone
-          :feature_type: admin
-          :hidden: true
-          :identifier: zone_delete
-    - :name: Regions
-      :description: Regions
-      :feature_type: node
+        :identifier: zone_new
+      - :name: Edit
+        :description: Edit a Zone
+        :feature_type: admin
+        :hidden: true
+        :identifier: zone_edit
+      - :name: Delete
+        :description: Delete a Zone
+        :feature_type: admin
+        :hidden: true
+        :identifier: zone_delete
+    - :name: Modify Region
+      :description: Modify Regions
+      :feature_type: admin
+      :identifier: region_admin
       :hidden: true
-      :identifier: region
       :children:
-      - :name: Modify
-        :description: Modify Regions
+      - :name: Edit
+        :description: Edit a Region
         :feature_type: admin
-        :identifier: region_admin
         :hidden: true
-        :children:
-        - :name: Edit
-          :description: Edit a Region
-          :feature_type: admin
-          :hidden: true
-          :identifier: region_edit
+        :identifier: region_edit
   - :name: Access Control
     :description: Access Control Accordion
     :feature_type: node
@@ -3438,6 +3364,15 @@
   :description: Show the About Information
   :feature_type: node
   :identifier: about
+  :children:
+  - :name: Zones
+    :description: Zones
+    :feature_type: node
+    :identifier: zone
+  - :name: Regions
+    :description: Regions
+    :feature_type: node
+    :identifier: region
 
 # PXE Explorer
 - :name: PXE
@@ -4162,35 +4097,6 @@
       :description: Remove Interface from Router
       :feature_type: admin
       :identifier: network_router_remove_interface
-
-# Load Balancer
-- :name: Load Balancers
-  :description: Everything under Load Balancers
-  :feature_type: node
-  :identifier: load_balancer
-  :children:
-  - :name: View
-    :description: View Load Balancers
-    :feature_type: view
-    :identifier: load_balancer_view
-    :children:
-    - :name: List
-      :description: Display Lists of Load Balancers
-      :feature_type: view
-      :identifier: load_balancer_show_list
-    - :name: Show
-      :description: Display Individual Load Balancers
-      :feature_type: view
-      :identifier: load_balancer_show
-  - :name: Operate
-    :description: Perform Operations on Load Balancers
-    :feature_type: control
-    :identifier: load_balancer_control
-    :children:
-    - :name: Edit Tags
-      :description: Edit Tags of Load Balancer
-      :feature_type: control
-      :identifier: load_balancer_tag
 
 # ContainerGroup
 - :name: Pods
@@ -5076,6 +4982,18 @@
         :description: Display Lists of Instances related to a CI
         :feature_type: view
         :identifier: instance_show_list
+      - :name: List Archived
+        :description: Display Lists of archived Instances related to a CI
+        :feature_type: view
+        :identifier: instance_show_list_archived
+      - :name: List Orphaned
+        :description: Display Lists of orphaned Instances related to a CI
+        :feature_type: view
+        :identifier: instance_show_list_orphaned
+      - :name: List Retired
+        :description: Display Lists of retired Instances related to a CI
+        :feature_type: view
+        :identifier: instance_show_list_retired
       - :name: Show
         :description: Display Individual Instances related to a CI
         :feature_type: view
@@ -5383,6 +5301,18 @@
         :description: Display Lists of VMs related to a CI
         :feature_type: view
         :identifier: vm_show_list
+      - :name: List Archived
+        :description: Display Lists of archived Vms related to a CI
+        :feature_type: view
+        :identifier: vm_show_list_archived
+      - :name: List Orphaned
+        :description: Display Lists of orphaned Vms related to a CI
+        :feature_type: view
+        :identifier: vm_show_list_orphaned
+      - :name: List Retired
+        :description: Display Lists of retired Vms related to a CI
+        :feature_type: view
+        :identifier: vm_show_list_retired
       - :name: Show
         :description: Display Individual VMs related to a CI
         :feature_type: view
@@ -5486,20 +5416,12 @@
         :description: Restart the Guest OS on VMs
         :feature_type: control
         :identifier: vm_guest_restart
-      - :name: Console using MKS
+      - :name: Console using HTML5
         :description: Open a web-based console for VMs
         :feature_type: control
-        :identifier: vm_console
-      - :name: Console using WebMKS
-        :description: Open a web-based console for VMs
-        :feature_type: control
-        :identifier: vm_webmks_console
-      - :name: Console using VNC
-        :description: Open a web-based VNC console for VMs
-        :feature_type: control
-        :identifier: vm_vnc_console
+        :identifier: vm_html5_console
       - :name: Console using VMRC
-        :description: Open a web-based VMRC console for VMs
+        :description: Open a VMRC console for VMs
         :feature_type: control
         :identifier: vm_vmrc_console
       - :name: Cockpit Console
@@ -6339,6 +6261,16 @@
   :feature_type: node
   :identifier: api_exclusive
   :children:
+  # Pictures
+  - :name: Pictures
+    :description: Everything under Pictures
+    :feature_type: node
+    :identifier: pictures
+    :children:
+    - :name: Create new Picture
+      :description: Create a new picture
+      :feature_type: admin
+      :identifier: picture_new
   - :name: Metrics
     :description: Everything under Metrics
     :feature_type: node
@@ -6538,7 +6470,11 @@
       - :name: Open Remote Console
         :description: Open Remote Console
         :feature_type: control
-        :identifier: sui_vm_console
+        :identifier: sui_vm_html5_console
+      - :name: Open VMware VMRC Console
+        :description: Open Remote Console
+        :feature_type: control
+        :identifier: sui_vm_vmrc_console
       - :name: Open Web Console
         :description: Open Web Console
         :feature_type: control

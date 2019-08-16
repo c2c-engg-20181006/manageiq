@@ -687,7 +687,6 @@ en:
     model:
       AuditEvent:               EVM Audit Event
       AvailabilityZone:         Availability Zone
-      BottleneckEvent:          Bottleneck Event
       HostAggregate:            Host Aggregate
       ChargebackVm:             Chargeback for Vms
       ChargebackContainerImage: Chargeback for Image
@@ -846,7 +845,8 @@ en:
       ManageIQ::Providers::Openstack::NetworkManager::SecurityGroup:        Security Group (OpenStack)
       ManageIQ::Providers::Azure::NetworkManager::LoadBalancer:             LoadBalancer (Microsoft Azure)
       ManageIQ::Providers::Azure::NetworkManager::CloudSubnet:              Cloud Subnet (Microsoft Azure)
-      ManageIQ::Providers::Azure::CloudManager::SecurityGroup:              Security Group (Microsoft Azure)
+      ManageIQ::Providers::Azure::NetworkManager::SecurityGroup:            Security Group (Microsoft Azure)
+      ManageIQ::Providers::Azure::NetworkManager::NetworkRouter:            Network Router (Microsoft Azure)
       ManageIQ::Providers::Openstack::NetworkManager::FloatingIp:           Floating IP (OpenStack)
       ManageIQ::Providers::Amazon::NetworkManager::FloatingIp:              Floating IP (Amazon)
       ManageIQ::Providers::Azure::NetworkManager::FloatingIp:               Floating IP (Microsoft Azure)
@@ -1025,7 +1025,6 @@ en:
       ems_physical_infras:         Physical Infrastructure Providers
       ems_storage:                 Storage Manager
       floating_ips:                Floating IP
-      load_balancer:               Load Balancer
       network_port:                Network Port
       network_router:              Network Router
       evm_owner:                   EVM Owner
