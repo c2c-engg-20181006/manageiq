@@ -1,8 +1,0 @@
-override_gem 'manageiq-providers-telefonica', :path => "../../manageiq-providers-telefonica"
-override_gem 'manageiq-providers-huawei', :path => "../../manageiq-providers-huawei"
-override_gem 'manageiq-providers-orange', :path => "../../manageiq-providers-orange"
-override_gem 'manageiq-ui-classic', :path => "../../manageiq-ui-classic"
-override_gem 'manageiq-providers-alibaba', :path => "../../manageiq-providers-alibaba"
-override_gem 'manageiq-providers-otc', :path => "../../manageiq-providers-otc"
-override_gem 'manageiq-decorators', :path => "../../manageiq-decorators"
-override_gem 'manageiq-schema', :path => "../../manageiq-schema"

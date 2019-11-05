@@ -9,7 +9,7 @@ require File.join(Bundler::Plugin.index.load_paths("bundler-inject")[0], "bundle
 # VMDB specific gems
 #
 
-gem "manageiq-gems-pending", ">0", :require => 'manageiq-gems-pending', :git => "https://github.com/ManageIQ/manageiq-gems-pending.git", :branch => "master"
+gem "manageiq-gems-pending", ">0", :require => 'manageiq-gems-pending', :git => "https://github.com/ManageIQ/manageiq-gems-pending.git", :ref => "c84fb5826484"
 # Modified gems for gems-pending.  Setting sources here since they are git references
 gem "handsoap", "~>0.2.5", :require => false, :git => "https://github.com/ManageIQ/handsoap.git", :tag => "v0.2.5-5"
 
@@ -20,14 +20,20 @@ def manageiq_plugin(plugin_name)
   end
 end
 
-
-def c2c_manageiq_plugin(plugin_name, branch_name)
+def manageiq_plugin_with_commit_id(plugin_name, commit_id)
   unless dependencies.detect { |d| d.name == plugin_name }
-    gem plugin_name, :git => "https://github.com/c2c-engg-20181006/#{plugin_name}", :branch => branch_name
+    gem plugin_name, :git => "https://github.com/ManageIQ/#{plugin_name}", :ref => commit_id
   end
 end
 
-manageiq_plugin "manageiq-providers-ansible_tower"
+
+def c2c_manageiq_plugin(plugin_name, branch_name)
+  unless dependencies.detect { |d| d.name == plugin_name }
+    gem plugin_name, :git => "https://github.com/Click2Cloud/#{plugin_name}", :branch => branch_name
+  end
+end
+
+manageiq_plugin_with_commit_id "manageiq-providers-ansible_tower", "88aa135"
 c2c_manageiq_plugin "manageiq-schema", "dev"
 
 # Unmodified gems
@@ -56,7 +62,7 @@ gem "kubeclient",                     "~>4.0",         :require => false # For s
 gem "linux_admin",                    "~>1.2.1",       :require => false
 gem "log_decorator",                  "~>0.1",         :require => false
 gem "manageiq-api-client",            "~>0.3.3",       :require => false
-gem "manageiq-messaging",                              :require => false, :git => "https://github.com/ManageIQ/manageiq-messaging", :branch => "master"
+gem "manageiq-messaging",                              :require => false, :git => "https://github.com/ManageIQ/manageiq-messaging", :ref => "07b4e6c6f8ca"
 gem "manageiq-password",              "~>0.3",         :require => false
 gem "manageiq-postgres_ha_admin",     "~>3.0",         :require => false
 gem "memoist",                        "~>0.15.0",      :require => false
@@ -79,6 +85,7 @@ gem "ruby-progressbar",               "~>1.7.0",       :require => false
 gem "rubyzip",                        "~>1.2.2",       :require => false
 gem "rugged",                         "~>0.27.0",      :require => false
 gem "snmp",                           "~>1.2.0",       :require => false
+gem "sprockets",                      "~>3.0",         :require => false
 gem "sqlite3",                        "~>1.3.0",       :require => false
 
 # Modified gems (forked on Github)
@@ -95,54 +102,52 @@ gem "american_date"
 #
 ### providers
 
-#gem "manageiq-providers-telefonica" ,:require=>false, :git=>"https://github.com/click2cloud/manageiq-providers-telefonica.git", :branch=>"dev-aniket"
-#c2c_manageiq_plugin "manageiq-providers-telefonica", "master"
-gem 'manageiq-providers-telefonica', :path => '../manageiq-providers-telefonica'
-gem 'manageiq-providers-orange', :path => '../manageiq-providers-orange'
-gem 'manageiq-providers-huawei', :path => '../manageiq-providers-huawei'
-gem 'manageiq-providers-alibaba', :path => '../manageiq-providers-alibaba'
-gem 'manageiq-providers-otc', :path => '../manageiq-providers-otc'
+c2c_manageiq_plugin "manageiq-providers-telefonica", "dev"
+c2c_manageiq_plugin "manageiq-providers-orange", "dev"
+c2c_manageiq_plugin "manageiq-providers-huawei", "master"
+c2c_manageiq_plugin "manageiq-providers-alibaba", "master"
+c2c_manageiq_plugin "manageiq-providers-otc", "master"
 
 group :openstack, :manageiq_default do
-  manageiq_plugin "manageiq-providers-openstack"
+  manageiq_plugin_with_commit_id "manageiq-providers-openstack", "1a8bc1a67903"
 end
 
 group :amazon, :manageiq_default do
-  manageiq_plugin "manageiq-providers-amazon"
-  gem "amazon_ssa_support",                          :require => false, :git => "https://github.com/ManageIQ/amazon_ssa_support.git", :branch => "master" # Temporary dependency to be moved to manageiq-providers-amazon when officially release
+  manageiq_plugin_with_commit_id "manageiq-providers-amazon", "caaa4e5eed89"
+  gem "amazon_ssa_support",                          :require => false, :git => "https://github.com/ManageIQ/amazon_ssa_support.git", :ref => "8691fb85780f" # Temporary dependency to be moved to manageiq-providers-amazon when officially release
 end
 
 group :azure, :manageiq_default do
-  manageiq_plugin "manageiq-providers-azure"
+  manageiq_plugin_with_commit_id "manageiq-providers-azure", "3eca30ccf94e"
 end
 
 group :foreman, :manageiq_default do
-  manageiq_plugin "manageiq-providers-foreman"
-  gem "foreman_api_client",             ">=0.1.0",   :require => false, :git => "https://github.com/ManageIQ/foreman_api_client.git", :branch => "master"
+  manageiq_plugin_with_commit_id "manageiq-providers-foreman", "9bb740a262a2"
+  gem "foreman_api_client",             ">=0.1.0",   :require => false, :git => "https://github.com/ManageIQ/foreman_api_client.git", :ref => "1cdf102c9331"
 end
 
 group :google, :manageiq_default do
-  manageiq_plugin "manageiq-providers-google"
+  manageiq_plugin_with_commit_id "manageiq-providers-google", "866d9d5e2a85"
 end
 
 group :kubernetes, :openshift, :manageiq_default do
-  manageiq_plugin "manageiq-providers-kubernetes"
+  manageiq_plugin_with_commit_id "manageiq-providers-kubernetes", "e1cf8efbf77b"
 end
 
 group :kubevirt, :manageiq_default do
-  manageiq_plugin "manageiq-providers-kubevirt"
+  manageiq_plugin_with_commit_id "manageiq-providers-kubevirt", "e8b476921e0d"
 end
 
 group :lenovo, :manageiq_default do
-  manageiq_plugin "manageiq-providers-lenovo"
+  manageiq_plugin_with_commit_id "manageiq-providers-lenovo", "e187a2f37b8e"
 end
 
 group :nuage, :manageiq_default do
-  manageiq_plugin "manageiq-providers-nuage"
+  manageiq_plugin_with_commit_id "manageiq-providers-nuage", "e340112ac958"
 end
 
 group :redfish, :manageiq_default do
-  manageiq_plugin "manageiq-providers-redfish"
+  manageiq_plugin_with_commit_id "manageiq-providers-redfish", "a3d624439b1b"
 end
 
 group :qpid_proton, :optional => true do
@@ -150,20 +155,20 @@ group :qpid_proton, :optional => true do
 end
 
 group :openshift, :manageiq_default do
-  manageiq_plugin "manageiq-providers-openshift"
+  manageiq_plugin_with_commit_id "manageiq-providers-openshift", "4bd6ad56b9bc"
 end
 
 group :ovirt, :manageiq_default do
-  manageiq_plugin "manageiq-providers-ovirt"
+  manageiq_plugin_with_commit_id "manageiq-providers-ovirt", "c41774be66dc"
   gem "ovirt_metrics",                  "~>2.0.0",       :require => false
 end
 
 group :scvmm, :manageiq_default do
-  manageiq_plugin "manageiq-providers-scvmm"
+  manageiq_plugin_with_commit_id "manageiq-providers-scvmm", "1c396537bb6f"
 end
 
 group :vmware, :manageiq_default do
-  manageiq_plugin "manageiq-providers-vmware"
+  manageiq_plugin_with_commit_id "manageiq-providers-vmware", "af70b995c328"
   gem "vmware_web_service",             "~>0.4.0"
 end
 
@@ -175,7 +180,7 @@ end
 ### end of provider bundler groups
 
 group :automate, :seed, :manageiq_default do
-  manageiq_plugin "manageiq-automation_engine"
+  manageiq_plugin_with_commit_id "manageiq-automation_engine", "ff0f0dd935cc"
 end
 
 group :replication, :manageiq_default do
@@ -183,11 +188,11 @@ group :replication, :manageiq_default do
 end
 
 group :rest_api, :manageiq_default do
-  manageiq_plugin "manageiq-api"
+  manageiq_plugin_with_commit_id "manageiq-api", "567572881a3d"
 end
 
 group :graphql_api, :manageiq_default do
-  manageiq_plugin "manageiq-graphql"
+  manageiq_plugin_with_commit_id "manageiq-graphql", "b5602ca62a42"
 end
 
 group :scheduler, :manageiq_default do
@@ -196,7 +201,7 @@ group :scheduler, :manageiq_default do
 end
 
 group :seed, :manageiq_default do
-  manageiq_plugin "manageiq-content"
+  manageiq_plugin_with_commit_id "manageiq-content", "2c6c747a81a1"
 end
 
 group :smartstate, :manageiq_default do
@@ -204,19 +209,19 @@ group :smartstate, :manageiq_default do
 end
 
 group :consumption, :manageiq_default do
-  manageiq_plugin "manageiq-consumption"
+  manageiq_plugin_with_commit_id "manageiq-consumption", "82739b155d70"
   gem 'hashdiff'
 end
 
 group :ui_dependencies do # Added to Bundler.require in config/application.rb
-  c2c_manageiq_plugin "manageiq-decorators", "dev-OTHA"
-  c2c_manageiq_plugin "manageiq-ui-classic", "dev-OTHA"
+  c2c_manageiq_plugin "manageiq-decorators", "dev-OTHAO"
+  c2c_manageiq_plugin "manageiq-ui-classic", "dev-OTHAO"
   # Modified gems (forked on Github)
   gem "jquery-rjs",                   "=0.1.1",                       :git => "https://github.com/ManageIQ/jquery-rjs.git", :tag => "v0.1.1-1"
 end
 
 group :v2v, :ui_dependencies do
-  manageiq_plugin "manageiq-v2v"
+  manageiq_plugin_with_commit_id "manageiq-v2v", "6e8a5685c5e7"
 end
 
 group :web_server, :manageiq_default do
@@ -261,4 +266,4 @@ unless ENV["APPLIANCE"]
     gem "rspec-rails",      "~>3.6.0"
   end
 end
-gem "fog-aliyun",:require => false, :git => "https://github.com/c2c-engg-20181006/fog-aliyun.git", :branch => "master"
+gem "fog-aliyun",:require => false, :git => "https://github.com/Click2Cloud/fog-aliyun.git", :branch => "master"
