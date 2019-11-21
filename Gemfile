@@ -26,7 +26,6 @@ def manageiq_plugin_with_commit_id(plugin_name, commit_id)
   end
 end
 
-
 def c2c_manageiq_plugin(plugin_name, branch_name)
   unless dependencies.detect { |d| d.name == plugin_name }
     gem plugin_name, :git => "https://github.com/Click2Cloud/#{plugin_name}", :branch => branch_name
@@ -101,7 +100,6 @@ gem "american_date"
 # This default is used to automatically require all of our gems in processes that don't specify which bundler groups they want.
 #
 ### providers
-
 c2c_manageiq_plugin "manageiq-providers-telefonica", "dev"
 c2c_manageiq_plugin "manageiq-providers-orange", "dev"
 c2c_manageiq_plugin "manageiq-providers-huawei", "master"
@@ -188,7 +186,7 @@ group :replication, :manageiq_default do
 end
 
 group :rest_api, :manageiq_default do
-  manageiq_plugin_with_commit_id "manageiq-api", "567572881a3d"
+  manageiq_plugin_with_commit_id "manageiq-api", "f2d81916c240"
 end
 
 group :graphql_api, :manageiq_default do
